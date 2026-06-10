@@ -127,6 +127,9 @@
                     <button class="nav-btn" onclick="switchAdminTab('relatorios')">
                         <i class="fa-solid fa-file-invoice-dollar"></i> Conferência
                     </button>
+                    <button class="nav-btn" onclick="switchAdminTab('mapa')">
+                        <i class="fa-solid fa-map"></i> Mapa Geral
+                    </button>
                 </nav>
 
                 <!-- User Profile & Log out -->
@@ -484,6 +487,49 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- TAB 7: MAPA GERAL DA OBRA -->
+                <section id="tab-mapa" class="tab-pane">
+                    <div class="glass-card" style="padding: 24px; margin-bottom: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+                            <div class="section-title" style="margin-bottom: 0;">
+                                <i class="fa-solid fa-map" style="color: var(--primary-light)"></i>
+                                Mapa Geral do Canteiro
+                            </div>
+                            
+                            <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                                <!-- Seletor de Torre -->
+                                <div class="form-group" style="margin-bottom: 0; min-width: 160px; display: flex; flex-direction: row; align-items: center; gap: 8px;">
+                                    <label for="mapa-torre-select" style="font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--text-secondary); text-transform: uppercase;">Torre:</label>
+                                    <select id="mapa-torre-select" onchange="renderTowerMap()" style="padding: 6px 12px; font-size: 13px; border-radius: 6px; background: rgba(0,0,0,0.2); color: #fff; border: 1px solid var(--border-color); width: 100%;">
+                                        <!-- Loaded dynamically -->
+                                    </select>
+                                </div>
+                                
+                                <!-- Seletor de Modo/Filtro de Serviço -->
+                                <div class="form-group" style="margin-bottom: 0; min-width: 250px; display: flex; flex-direction: row; align-items: center; gap: 8px;">
+                                    <label for="mapa-servico-filter" style="font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--text-secondary); text-transform: uppercase;">Filtro:</label>
+                                    <select id="mapa-servico-filter" onchange="renderTowerMap()" style="padding: 6px 12px; font-size: 13px; border-radius: 6px; background: rgba(0,0,0,0.2); color: #fff; border: 1px solid var(--border-color); width: 100%;">
+                                        <option value="ALL">Visão Geral (Todos os Serviços)</option>
+                                        <!-- Servicos loaded dynamically -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Legenda de Cores -->
+                        <div class="map-legend-bar" id="map-legend-bar" style="display: flex; flex-wrap: wrap; gap: 16px; padding: 12px 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 24px; align-items: center; justify-content: center; font-size: 12px;">
+                            <!-- Loaded dynamically by JS to show the colors of the current services -->
+                        </div>
+
+                        <!-- Grid Principal da Torre -->
+                        <div id="tower-map-container" style="display: flex; justify-content: center; width: 100%; overflow-x: auto; padding-top: 10px;">
+                            <div id="tower-map-grid" class="tower-map-grid">
+                                <!-- Generated dynamically by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
     </div>
@@ -684,6 +730,27 @@
                     <button class="btn-logout" onclick="mobileLogout()" style="font-size: 10px;">Sair <i class="fa-solid fa-arrow-right-from-bracket"></i></button>
                 </div>
 
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalhes da Unidade (Mapa Geral) -->
+    <div id="unit-details-modal" class="modal-backdrop" style="display: none;">
+        <div class="modal-container glass-card" style="max-width: 500px; width: 95%; padding: 24px; position: relative;">
+            <button onclick="closeUnitDetailsModal()" class="modal-close-btn" style="position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; transition: var(--transition-fast);">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div id="modal-unit-header" style="margin-bottom: 20px; text-align: left; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                <h3 id="modal-unit-title" style="font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 4px;">Apto 101</h3>
+                <span id="modal-unit-subtitle" style="font-size: 13px; color: var(--text-secondary);">Torre 01 - 1º Pavimento</span>
+            </div>
+            
+            <div id="modal-unit-content" style="max-height: 350px; overflow-y: auto; text-align: left;">
+                <!-- Dynamically populated by JS -->
+            </div>
+            
+            <div style="margin-top: 24px; display: flex; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <button onclick="closeUnitDetailsModal()" class="btn-secondary" style="padding: 10px 20px; font-size: 13px; border-radius: 8px;">Fechar</button>
             </div>
         </div>
     </div>

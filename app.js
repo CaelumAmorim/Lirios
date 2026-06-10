@@ -418,8 +418,12 @@ function switchAdminTab(tabId) {
         renderServicesList();
         renderMatrixEditor();
     }
-    else if (tabId === 'alocacao') renderAllocationGrid();
+    else if (tabId === 'alocacao') {
+        renderTeamTab();
+        renderAllocationGrid();
+    }
     else if (tabId === 'relatorios') renderAuditReport();
+    else if (tabId === 'mapa') initTowerMapTab();
 }
 
 // ==========================================
@@ -1787,4 +1791,331 @@ function applyMobileTheme(theme) {
     
     localStorage.setItem('lirios_theme_mobile', theme);
 }
+
+// ==========================================
+// 13. TOWER VISUALIZER MAP GRID (MAPA GERAL)
+// ==========================================
+
+function initTowerMapTab() {
+    loadFromStorage();
+    
+    const torreSelect = document.getElementById('mapa-torre-select');
+    const servicoSelect = document.getElementById('mapa-servico-filter');
+    if (!torreSelect || !servicoSelect) return;
+
+    if (!activeObraId) {
+        torreSelect.innerHTML = `<option value="">Nenhuma Obra Ativa</option>`;
+        servicoSelect.innerHTML = `<option value="ALL">Visão Geral (Todos os Serviços)</option>`;
+        document.getElementById('map-legend-bar').innerHTML = '';
+        document.getElementById('tower-map-grid').innerHTML = '<div style="color: var(--text-muted); padding: 40px; text-align: center;">Nenhuma obra ativa selecionada.</div>';
+        return;
+    }
+
+    const obra = db.obras.find(o => o.id === activeObraId);
+    if (!obra) return;
+
+    // Popula as Torres da obra ativa
+    if (obra.torres && Array.isArray(obra.torres) && obra.torres.length > 0) {
+        torreSelect.innerHTML = obra.torres.map(t => `<option value="${t.nome}">${t.nome}</option>`).join('');
+    } else {
+        torreSelect.innerHTML = `<option value="">Sem Torres</option>`;
+    }
+
+    // Popula os Serviços de Limpeza Ativos
+    const activeServicesOptions = db.servicos.map(s => `<option value="${s.chave}">${s.label}</option>`).join('');
+    servicoSelect.innerHTML = `<option value="ALL">Visão Geral (Todos os Serviços)</option>` + activeServicesOptions;
+
+    renderTowerMap();
+}
+
+function renderTowerMap() {
+    loadFromStorage();
+    const gridContainer = document.getElementById('tower-map-grid');
+    const legendContainer = document.getElementById('map-legend-bar');
+    if (!gridContainer || !legendContainer) return;
+
+    gridContainer.innerHTML = '';
+    legendContainer.innerHTML = '';
+
+    if (!activeObraId) {
+        gridContainer.innerHTML = '<div style="color: var(--text-muted); padding: 40px; text-align: center;">Nenhuma obra selecionada.</div>';
+        return;
+    }
+
+    const obra = db.obras.find(o => o.id === activeObraId);
+    const selectedTorreName = document.getElementById('mapa-torre-select').value;
+    const selectedFilter = document.getElementById('mapa-servico-filter').value;
+
+    if (!obra || !selectedTorreName) {
+        gridContainer.innerHTML = '<div style="color: var(--text-muted); padding: 40px; text-align: center;">Selecione uma torre válida.</div>';
+        return;
+    }
+
+    const tConfig = obra.torres.find(t => t.nome === selectedTorreName);
+    if (!tConfig) {
+        gridContainer.innerHTML = '<div style="color: var(--text-muted); padding: 40px; text-align: center;">Estrutura da torre não encontrada.</div>';
+        return;
+    }
+
+    const totalPavs = parseInt(tConfig.pavimentos) || 1;
+    const totalApts = parseInt(tConfig.apts_por_pavimento) || 1;
+    
+    // 1. Renderiza a Legenda correspondente
+    renderLegend(selectedFilter, legendContainer);
+
+    // 2. Título do Cabeçalho da Torre
+    const headerTitle = document.createElement('div');
+    headerTitle.style = "width: 100%; text-align: center; font-size: 16px; font-weight: 800; font-family: 'Outfit', sans-serif; text-transform: uppercase; background: var(--primary-gradient); color: #fff; padding: 10px; border-radius: 8px; margin-bottom: 12px; letter-spacing: 1px;";
+    headerTitle.innerText = `${obra.nome} - ${selectedTorreName}`;
+    gridContainer.appendChild(headerTitle);
+
+    const towerGrid = document.createElement('div');
+    towerGrid.className = "tower-map-grid";
+    
+    // 3. Renderiza os Pavimentos de forma Decrescente (do último ao primeiro)
+    for (let p = totalPavs; p >= 1; p--) {
+        const row = document.createElement('div');
+        row.className = "tower-row";
+
+        // Filtra as unidades criadas para este andar e torre
+        const unidadesAndar = db.unidades.filter(uni => 
+            uni.obra_id === activeObraId && 
+            uni.torre === selectedTorreName && 
+            uni.pavimento === p
+        );
+
+        // Separa Apartamentos e Halls
+        const apts = unidadesAndar.filter(u => u.tipo_unidade === 'APARTAMENTO').sort((a, b) => a.unidade_nome.localeCompare(b.unidade_nome));
+        const halls = unidadesAndar.filter(u => u.tipo_unidade === 'HALL').sort((a, b) => a.unidade_nome.localeCompare(b.unidade_nome));
+
+        // Divide apartamentos ao meio (Esquerda vs Direita)
+        const half = Math.ceil(apts.length / 2);
+        const leftApts = apts.slice(0, half);
+        const rightApts = apts.slice(half);
+
+        // 3.1 Renderiza os Apartamentos do Lado Esquerdo
+        leftApts.forEach(uni => {
+            row.appendChild(createUnitMapCell(uni, selectedFilter));
+        });
+
+        // 3.2 Renderiza o Hall no Centro
+        if (halls.length > 0) {
+            halls.forEach(h => {
+                row.appendChild(createUnitMapCell(h, selectedFilter, `${p}º HALL`));
+            });
+        } else {
+            // Cria um Hall temporário se a estrutura for antiga para manter o alinhamento central
+            const dummyHall = document.createElement('div');
+            dummyHall.className = "tower-cell hall";
+            dummyHall.innerHTML = `<span class="tower-cell-title">${p}º HALL</span>`;
+            row.appendChild(dummyHall);
+        }
+
+        // 3.3 Renderiza os Apartamentos do Lado Direito
+        rightApts.forEach(uni => {
+            row.appendChild(createUnitMapCell(uni, selectedFilter));
+        });
+
+        towerGrid.appendChild(row);
+    }
+    gridContainer.appendChild(towerGrid);
+}
+
+function renderLegend(selectedFilter, legendContainer) {
+    if (selectedFilter === 'ALL') {
+        // Legenda completa dos 5 serviços com suas cores
+        legendContainer.innerHTML = `
+            <div style="font-weight: 600; color: var(--text-secondary); margin-right: 8px;">Frentes de Serviço:</div>
+            ${db.servicos.map(s => {
+                const srvClass = getServiceColorClass(s.chave);
+                return `
+                    <div class="legend-pill">
+                        <div class="legend-color-box ${srvClass}"></div>
+                        <span>${s.label}</span>
+                    </div>
+                `;
+            }).join('')}
+            <div style="width: 1px; height: 16px; background: var(--border-color); margin: 0 8px;"></div>
+            <div class="legend-pill" style="border-style: dashed; background: transparent;">
+                <div style="width: 10px; height: 10px; border: 1px dashed var(--warning); border-radius: 2px;"></div>
+                <span>Tracejado = Em Execução</span>
+            </div>
+            <div class="legend-pill">
+                <div style="width: 10px; height: 10px; background: var(--success); border-radius: 2px;"></div>
+                <span>Aceso = Concluído</span>
+            </div>
+        `;
+    } else {
+        // Legenda de frente individual selecionada
+        const srv = db.servicos.find(s => s.chave === selectedFilter);
+        const srvLabel = srv ? srv.label : selectedFilter;
+        const srvClass = getServiceColorClass(selectedFilter);
+        
+        legendContainer.innerHTML = `
+            <div style="font-weight: 600; color: var(--text-secondary); margin-right: 8px;">Status da Frente: <strong>${srvLabel}</strong></div>
+            <div class="legend-pill">
+                <div class="legend-color-box ${srvClass}"></div>
+                <span>Preenchido = Concluído</span>
+            </div>
+            <div class="legend-pill" style="border-style: dashed; background: transparent; padding-left: 8px;">
+                <div class="legend-color-box ${srvClass}" style="opacity: 0.15; border: 1px dashed var(--srv-color); width: 10px; height: 10px;"></div>
+                <span>Tracejado = Em Execução</span>
+            </div>
+            <div class="legend-pill" style="opacity: 0.5;">
+                <div style="width: 12px; height: 12px; border: 1px solid var(--border-color); border-radius: 3px; background: rgba(255,255,255,0.02);"></div>
+                <span>Sem Cor = Não Iniciado</span>
+            </div>
+        `;
+    }
+}
+
+function getServiceColorClass(chave) {
+    const key = chave.toLowerCase();
+    if (['grossa', 'fina', 'pesada', 'passada_de_pano', 'lavagem_pos_forma'].includes(key)) {
+        return `srv-color-${key}`;
+    }
+    // Fallback circular para novos serviços inseridos dinamicamente
+    const keys = db.servicos.map(s => s.chave);
+    const idx = keys.indexOf(chave);
+    const colors = ['grossa', 'fina', 'pesada', 'passada_de_pano', 'lavagem_pos_forma'];
+    const colName = colors[idx % colors.length];
+    return `srv-color-${colName}`;
+}
+
+function createUnitMapCell(uni, selectedFilter, customLabel = null) {
+    const cell = document.createElement('div');
+    const isHall = uni.tipo_unidade === 'HALL';
+    cell.className = `tower-cell ${isHall ? 'hall' : 'apartment'}`;
+    
+    const labelText = customLabel || uni.unidade_nome;
+    cell.innerHTML = `<span class="tower-cell-title">${labelText}</span>`;
+
+    if (!isHall) {
+        cell.onclick = () => openUnitDetailsModal(uni.id);
+    }
+
+    const limpezasUnit = db.limpezas.filter(l => l.unidade_id === uni.id);
+
+    if (selectedFilter === 'ALL') {
+        // Exibe pequenos blocos coloridos (G, F, P, Pa, L) de todos os serviços na célula
+        const dotsContainer = document.createElement('div');
+        dotsContainer.className = "service-dots-container";
+        
+        db.servicos.forEach(srv => {
+            const log = limpezasUnit.find(l => l.tipo_limpeza === srv.chave);
+            const dot = document.createElement('div');
+            dot.className = `service-dot-block ${getServiceColorClass(srv.chave)}`;
+            dot.innerText = srv.label.charAt(0);
+            dot.title = `${srv.label}: ${log ? (log.data_conclusao ? 'Concluído' : 'Em Execução') : 'Não Iniciado'}`;
+
+            if (!log) {
+                dot.classList.add('not-started');
+            } else if (log.data_conclusao === null) {
+                dot.classList.add('in-progress');
+            } else {
+                dot.classList.add('completed');
+            }
+            dotsContainer.appendChild(dot);
+        });
+        cell.appendChild(dotsContainer);
+    } else {
+        // Colore o fundo de toda a célula correspondente ao serviço selecionado no filtro
+        const log = limpezasUnit.find(l => l.tipo_limpeza === selectedFilter);
+        const srvClass = getServiceColorClass(selectedFilter);
+        cell.classList.add(srvClass);
+
+        if (!log) {
+            cell.classList.add('not-started-fill');
+        } else if (log.data_conclusao === null) {
+            cell.classList.add('in-progress-fill');
+        } else {
+            cell.classList.add('completed-fill');
+        }
+    }
+
+    return cell;
+}
+
+function openUnitDetailsModal(unidadeId) {
+    loadFromStorage();
+    const uni = db.unidades.find(u => u.id === unidadeId);
+    if (!uni) return;
+
+    const obra = db.obras.find(o => o.id === uni.obra_id);
+    const limpezasUnit = db.limpezas.filter(l => l.unidade_id === uni.id);
+
+    document.getElementById('modal-unit-title').innerText = uni.unidade_nome;
+    document.getElementById('modal-unit-subtitle').innerText = `${obra ? obra.nome : ''} - ${uni.torre} - ${uni.pavimento}º Pavimento`;
+
+    const contentDiv = document.getElementById('modal-unit-content');
+    contentDiv.innerHTML = '';
+
+    if (db.servicos.length === 0) {
+        contentDiv.innerHTML = '<div style="color: var(--text-muted); font-style: italic; padding: 20px 0; text-align: center;">Nenhum serviço cadastrado no sistema.</div>';
+    } else {
+        const listContainer = document.createElement('div');
+        listContainer.style = "display: flex; flex-direction: column; gap: 14px; margin-top: 10px;";
+
+        db.servicos.forEach(srv => {
+            const log = limpezasUnit.find(l => l.tipo_limpeza === srv.chave);
+            const row = document.createElement('div');
+            row.style = "background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px;";
+            
+            let statusBadge = '';
+            let detailsHTML = '';
+
+            if (!log) {
+                statusBadge = '<span class="prod-badge" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border-color);">NÃO INICIADO</span>';
+                detailsHTML = '<div style="font-size: 11px; color: var(--text-muted); font-style: italic;">Nenhum registro de atividade.</div>';
+            } else if (log.data_conclusao === null) {
+                statusBadge = '<span class="prod-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3);">EM ANDAMENTO</span>';
+                const startStr = new Date(log.data_inicio).toLocaleString('pt-BR');
+                const worker = db.users.find(u => u.id === log.usuario_id);
+                detailsHTML = `
+                    <div style="font-size: 11px; color: var(--text-secondary);">Início: <strong>${startStr}</strong></div>
+                    <div style="font-size: 11px; color: var(--text-secondary);">Por: <strong>${worker ? worker.nome : 'Colaborador'}</strong></div>
+                `;
+            } else {
+                statusBadge = '<span class="prod-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3);">CONCLUÍDO</span>';
+                const startStr = new Date(log.data_inicio).toLocaleString('pt-BR');
+                const endStr = new Date(log.data_conclusao).toLocaleString('pt-BR');
+                const worker = db.users.find(u => u.id === log.usuario_id);
+                const obs = log.observacao_canteiro ? log.observacao_canteiro : 'Nenhuma';
+                detailsHTML = `
+                    <div style="font-size: 11px; color: var(--text-secondary);">Início: <strong>${startStr}</strong></div>
+                    <div style="font-size: 11px; color: var(--text-secondary);">Fim: <strong>${endStr}</strong></div>
+                    <div style="font-size: 11px; color: var(--text-secondary);">Por: <strong>${worker ? worker.nome : 'Colaborador'}</strong></div>
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 4px;">Obs: <em>"${obs}"</em></div>
+                `;
+            }
+
+            row.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 6px; margin-bottom: 4px;">
+                    <span style="font-weight: 700; font-size: 13px; color: #fff; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid ${srv.icon || 'fa-broom'}" style="color: var(--primary-light);"></i>
+                        ${srv.label}
+                    </span>
+                    ${statusBadge}
+                </div>
+                ${detailsHTML}
+            `;
+            listContainer.appendChild(row);
+        });
+        contentDiv.appendChild(listContainer);
+    }
+
+    document.getElementById('unit-details-modal').style.display = 'flex';
+}
+
+function closeUnitDetailsModal() {
+    document.getElementById('unit-details-modal').style.display = 'none';
+}
+
+// Fecha o modal de detalhes se clicar fora da caixa do modal
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('unit-details-modal');
+    if (event.target === modal) {
+        closeUnitDetailsModal();
+    }
+});
 
