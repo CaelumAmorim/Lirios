@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lírios - Gestão de Limpeza Pós-Obra</title>
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app-wrapper">
+        
+        <!-- LEFT: ADMIN PANEL (Desktop Web View) -->
+        <main class="admin-container">
+            <!-- Header -->
+            <header class="admin-header">
+                <div class="logo-container">
+                    <span class="logo-icon"><i class="fa-solid fa-wind"></i></span>
+                    <span class="logo-text">LÍRIOS</span>
+                    <span class="admin-title-badge">PAINEL ADMINISTRATIVO</span>
+                </div>
+                <!-- Navigation Tabs -->
+                <nav class="admin-nav">
+                    <button class="nav-btn active" onclick="switchAdminTab('dashboard')">
+                        <i class="fa-solid fa-chart-line"></i> Dashboard
+                    </button>
+                    <button class="nav-btn" onclick="switchAdminTab('obras')">
+                        <i class="fa-solid fa-building-user"></i> Cadastro Obras
+                    </button>
+                    <button class="nav-btn" onclick="switchAdminTab('matriz')">
+                        <i class="fa-solid fa-money-bill-wave"></i> Matriz de Preços
+                    </button>
+                    <button class="nav-btn" onclick="switchAdminTab('alocacao')">
+                        <i class="fa-solid fa-user-plus"></i> Alocação Rápida
+                    </button>
+                    <button class="nav-btn" onclick="switchAdminTab('relatorios')">
+                        <i class="fa-solid fa-file-invoice-dollar"></i> Conferência
+                    </button>
+                </nav>
+            </header>
+
+            <!-- Content Area -->
+            <div class="admin-content">
+                
+                <!-- TAB 1: DASHBOARD -->
+                <section id="tab-dashboard" class="tab-pane active">
+                    <!-- Metric Cards -->
+                    <div class="metrics-grid">
+                        <div class="glass-card metric-card">
+                            <div class="metric-icon emerald">
+                                <i class="fa-solid fa-wallet"></i>
+                            </div>
+                            <div class="metric-info">
+                                <h4>Faturamento Total</h4>
+                                <div class="metric-value" id="admin-fat-total">R$ 0,00</div>
+                            </div>
+                        </div>
+                        <div class="glass-card metric-card">
+                            <div class="metric-icon blue">
+                                <i class="fa-solid fa-helmet-safety"></i>
+                            </div>
+                            <div class="metric-info">
+                                <h4>Obras Ativas</h4>
+                                <div class="metric-value" id="admin-obras-total">0</div>
+                            </div>
+                        </div>
+                        <div class="glass-card metric-card">
+                            <div class="metric-icon purple">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <div class="metric-info">
+                                <h4>Unidades Limpas</h4>
+                                <div class="metric-value" id="admin-limpezas-total">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts & Recent Activity -->
+                    <div class="dashboard-layout">
+                        <!-- Chart Card -->
+                        <div class="glass-card">
+                            <div class="section-title">
+                                <i class="fa-solid fa-ranking-star" style="color: var(--primary-light)"></i>
+                                Produtividade do Time (Últimos 30 dias)
+                            </div>
+                            <!-- Productivity bar list -->
+                            <div class="chart-container" id="productivity-chart">
+                                <!-- Rendered dynamically by JS -->
+                            </div>
+                            <div class="chart-legend">
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background: var(--success)"></div>
+                                    <span>Acima/Na Média</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background: var(--warning)"></div>
+                                    <span>Abaixo da Média</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Faturamento Period Grid -->
+                        <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                            <div>
+                                <div class="section-title">
+                                    <i class="fa-solid fa-calendar-days" style="color: var(--primary-light)"></i>
+                                    Faturamento por Período
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 10px;">
+                                    <div class="matrix-item">
+                                        <span style="font-weight: 500;"><i class="fa-solid fa-clock"></i> Diário (Hoje)</span>
+                                        <span class="currency-symbol" id="fat-diario" style="color: var(--success); font-size: 16px; font-weight: 700;">R$ 0,00</span>
+                                    </div>
+                                    <div class="matrix-item">
+                                        <span style="font-weight: 500;"><i class="fa-solid fa-calendar-week"></i> Semanal (Últimos 7 dias)</span>
+                                        <span class="currency-symbol" id="fat-semanal" style="color: var(--success); font-size: 16px; font-weight: 700;">R$ 0,00</span>
+                                    </div>
+                                    <div class="matrix-item">
+                                        <span style="font-weight: 500;"><i class="fa-solid fa-calendar-check"></i> Mensal (Mês Atual)</span>
+                                        <span class="currency-symbol" id="fat-mensal" style="color: var(--success); font-size: 16px; font-weight: 700;">R$ 0,00</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 10px;">
+                                *Valores baseados nas limpezas confirmadas no aplicativo móvel.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 2: CADASTRO OBRAS -->
+                <section id="tab-obras" class="tab-pane">
+                    <div class="glass-card">
+                        <div class="section-title">
+                            <i class="fa-solid fa-circle-plus" style="color: var(--primary-light)"></i>
+                            Cadastrar Nova Obra
+                        </div>
+                        <form id="form-criar-obra" onsubmit="event.preventDefault(); adminCreateObra();">
+                            <div class="form-grid">
+                                <div class="form-group full-width">
+                                    <label for="obra-nome">Nome da Empreitada / Condomínio</label>
+                                    <input type="text" id="obra-nome" placeholder="Ex: Residencial Chapada Fontana" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="obra-torres">Quantidade de Torres/Blocos</label>
+                                    <input type="number" id="obra-torres" min="1" max="10" placeholder="Ex: 2" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="obra-pavimentos">Pavimentos por Torre</label>
+                                    <input type="number" id="obra-pavimentos" min="1" max="50" placeholder="Ex: 10" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="obra-apts">Apartamentos por Andar</label>
+                                    <input type="number" id="obra-apts" min="1" max="20" placeholder="Ex: 8" required>
+                                </div>
+                                <div class="form-group" style="display: flex; justify-content: flex-end; align-items: flex-end; grid-column: span 1;">
+                                    <button type="submit" class="btn-primary" style="width: 100%;">
+                                        <i class="fa-solid fa-hammer"></i> Criar Obra e Gerar Unidades
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="glass-card">
+                        <div class="section-title">
+                            <i class="fa-solid fa-list-check" style="color: var(--primary-light)"></i>
+                            Obras Cadastradas
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="styled-table" id="table-obras-list">
+                                <thead>
+                                    <tr>
+                                        <th>Nome da Obra</th>
+                                        <th>Estrutura Física</th>
+                                        <th>Total Unidades</th>
+                                        <th>Funcionários Alocados</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Rendered by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 3: MATRIZ DE PREÇOS -->
+                <section id="tab-matriz" class="tab-pane">
+                    <div class="glass-card">
+                        <div class="section-title">
+                            <i class="fa-solid fa-sliders" style="color: var(--primary-light)"></i>
+                            Configurar Valores por Tipo de Limpeza
+                        </div>
+                        <div class="form-group" style="max-width: 300px; margin-bottom: 24px;">
+                            <label for="matriz-obra-select">Selecionar Obra</label>
+                            <select id="matriz-obra-select" onchange="renderMatrixEditor()">
+                                <!-- Options dynamically loaded -->
+                            </select>
+                        </div>
+
+                        <div class="matrix-grid" id="matrix-inputs-container">
+                            <!-- Matrix fields loaded by JS -->
+                        </div>
+
+                        <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
+                            <button class="btn-primary" onclick="adminSaveMatrix()">
+                                <i class="fa-solid fa-floppy-disk"></i> Salvar Matriz de Valores
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 4: ALOCAÇÃO RÁPIDA -->
+                <section id="tab-alocacao" class="tab-pane">
+                    <div class="glass-card">
+                        <div class="section-title">
+                            <i class="fa-solid fa-people-arrows" style="color: var(--primary-light)"></i>
+                            Vincular Colaborador à Obra
+                        </div>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 24px;">
+                            Selecione uma obra para ver e gerenciar os funcionários autorizados a trabalhar nela.
+                        </p>
+                        
+                        <div class="form-group" style="max-width: 300px; margin-bottom: 24px;">
+                            <label for="alocacao-obra-select">Selecionar Obra</label>
+                            <select id="alocacao-obra-select" onchange="renderAllocationGrid()">
+                                <!-- Options dynamic -->
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 20px; font-weight: 600; font-size: 14px;">Colaboradores do Canteiro:</div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;" id="allocation-employees-list">
+                            <!-- Checkboxes dynamic -->
+                        </div>
+
+                        <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
+                            <button class="btn-primary" onclick="adminSaveAllocations()">
+                                <i class="fa-solid fa-circle-check"></i> Salvar Alocações
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 5: RELATÓRIO DE CONFERÊNCIA -->
+                <section id="tab-relatorios" class="tab-pane">
+                    <div class="glass-card">
+                        <div class="section-title">
+                            <i class="fa-solid fa-print" style="color: var(--primary-light)"></i>
+                            Relatório de Conferência de Limpezas
+                        </div>
+                        
+                        <div style="display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;">
+                            <div class="form-group" style="min-width: 200px;">
+                                <label for="filtro-relatorio-obra">Filtrar por Obra</label>
+                                <select id="filtro-relatorio-obra" onchange="renderAuditReport()">
+                                    <option value="ALL">Todas as Obras</option>
+                                    <!-- Dynamic -->
+                                </select>
+                            </div>
+                            <div class="form-group" style="min-width: 150px;">
+                                <label for="filtro-relatorio-periodo">Período</label>
+                                <select id="filtro-relatorio-periodo" onchange="renderAuditReport()">
+                                    <option value="TODAY">Hoje</option>
+                                    <option value="WEEK">Últimos 7 dias</option>
+                                    <option value="MONTH">Mês Atual</option>
+                                    <option value="ALL">Histórico Geral</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-wrapper">
+                            <table class="styled-table" id="table-audit-report">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Obra / Local</th>
+                                        <th>Funcionário</th>
+                                        <th>Tipo Serviço</th>
+                                        <th style="text-align: right;">Valor Gerado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+
+        <!-- RIGHT: MOBILE SIMULATOR (Colaborador App) -->
+        <aside class="mobile-simulator-container">
+            <div class="smartphone-frame">
+                <!-- Speaker and Notch -->
+                <div class="phone-notch">
+                    <div class="phone-speaker"></div>
+                    <div class="phone-camera"></div>
+                </div>
+
+                <!-- Status Bar -->
+                <div class="phone-status-bar">
+                    <span id="phone-clock">12:00</span>
+                    <div class="status-icons">
+                        <i class="fa-solid fa-wifi"></i>
+                        <i class="fa-solid fa-battery-three-quarters"></i>
+                    </div>
+                </div>
+
+                <!-- Inner Screen Container -->
+                <div class="phone-screen" id="phone-screen-root">
+                    
+                    <!-- SCREEN 1: LOGIN MOBILE -->
+                    <div id="m-screen-login" class="mobile-view active">
+                        <div class="login-logo">
+                            <i class="fa-solid fa-wind"></i> Lírios
+                        </div>
+                        <div style="font-size: 13px; text-align: center; color: var(--text-secondary); margin-bottom: 24px;">
+                            Acesso exclusivo para colaboradores de campo.
+                        </div>
+                        <div class="form-group">
+                            <label>Selecione seu Nome</label>
+                            <select id="mobile-user-select" style="background: rgba(255,255,255,0.06); padding: 12px; font-size: 14px;">
+                                <!-- Dynamic options for workers -->
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 24px;">
+                            <label>Senha de Campo</label>
+                            <input type="password" value="123456" disabled style="background: rgba(255,255,255,0.03); color: var(--text-muted);">
+                            <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">*A senha está pré-preenchida para o teste.</span>
+                        </div>
+                        <button class="btn-mobile-primary" onclick="mobileLogin()">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar no App
+                        </button>
+                    </div>
+
+                    <!-- SCREEN 2: OBRA ACTIVA SELECTOR -->
+                    <div id="m-screen-obras" class="mobile-view">
+                        <div class="mobile-header">
+                            <div class="mobile-title">Obras Alocadas</div>
+                            <div class="mobile-subtitle">Selecione para ver o canteiro</div>
+                        </div>
+                        <div class="mobile-card-list" id="mobile-obras-list">
+                            <!-- Loaded by JS -->
+                        </div>
+                    </div>
+
+                    <!-- SCREEN 3: TORRES LIST -->
+                    <div id="m-screen-torres" class="mobile-view">
+                        <div class="mobile-header">
+                            <button class="btn-back" onclick="mobileBackToObras()"><i class="fa-solid fa-chevron-left"></i></button>
+                            <div class="mobile-title" id="mobile-torres-title">Obra Selecionada</div>
+                            <div class="mobile-subtitle">Selecione a torre de limpeza</div>
+                        </div>
+                        <div class="mobile-card-list" id="mobile-torres-list">
+                            <!-- Dynamic -->
+                        </div>
+                    </div>
+
+                    <!-- SCREEN 4: PAVIMENTOS LIST -->
+                    <div id="m-screen-pavimentos" class="mobile-view">
+                        <div class="mobile-header">
+                            <button class="btn-back" onclick="mobileBackToTorres()"><i class="fa-solid fa-chevron-left"></i></button>
+                            <div class="mobile-title" id="mobile-pavimentos-title">Torre 1</div>
+                            <div class="mobile-subtitle">Selecione o andar/pavimento</div>
+                        </div>
+                        <div class="mobile-card-list" id="mobile-pavimentos-list">
+                            <!-- Dynamic -->
+                        </div>
+                    </div>
+
+                    <!-- SCREEN 5: UNIDADES GRID -->
+                    <div id="m-screen-unidades" class="mobile-view">
+                        <div class="mobile-header">
+                            <button class="btn-back" onclick="mobileBackToPavimentos()"><i class="fa-solid fa-chevron-left"></i></button>
+                            <div class="mobile-title" id="mobile-unidades-title">1º Andar</div>
+                            <div class="mobile-subtitle">Selecione a unidade física</div>
+                        </div>
+                        <!-- Units Render Grid -->
+                        <div class="mobile-grid" id="mobile-unidades-grid">
+                            <!-- Dynamic -->
+                        </div>
+                    </div>
+
+                    <!-- SCREEN 6: CHECKLIST DETALHE -->
+                    <div id="m-screen-detalhe" class="mobile-view">
+                        <div class="mobile-header">
+                            <button class="btn-back" onclick="mobileBackToUnidades()"><i class="fa-solid fa-chevron-left"></i></button>
+                            <div class="mobile-title" id="mobile-detalhe-title">Apto 101</div>
+                            <div class="mobile-subtitle" id="mobile-detalhe-subtitle">Torre 1 - 1º Andar</div>
+                        </div>
+                        
+                        <div class="mobile-card-list" id="mobile-checklist-cards">
+                            <!-- Checklist items (Grossa, Fina, Passada) with individual save actions -->
+                        </div>
+                    </div>
+
+                    <!-- Toast Notification inside simulated phone -->
+                    <div id="mobile-toast" class="mobile-toast">
+                        <i class="fa-solid fa-circle-check"></i> <span id="mobile-toast-text">Salvo com sucesso!</span>
+                    </div>
+
+                    <!-- Logged worker footer status strip -->
+                    <div id="mobile-footer" class="user-status-strip" style="display: none; margin-top: auto;">
+                        <div>
+                            <span class="status-dot-active"></span>
+                            <span id="mobile-footer-username">Colaborador</span>
+                        </div>
+                        <button class="btn-logout" onclick="mobileLogout()">Sair <i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+                    </div>
+
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Script Application Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
