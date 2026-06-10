@@ -1,5 +1,5 @@
 // ==========================================
-// LOGICA E ESTADO DA APLICAÇÃO: LÍRIOS
+// LOGICA E ESTADO DA APLICAÇÃO: LÍRIOS (V3)
 // ==========================================
 
 // Variáveis de Estado Local
@@ -9,13 +9,16 @@ let db = {
     alocacoes: [],
     unidades: [],
     matriz: [],
-    limpezas: []
+    limpezas: [],
+    servicos: [] // Serviços de Limpeza Dinâmicos
 };
 
-// Estado da Interface Admin
+// Estado da Sessão Admin
+let adminSession = null;
 let currentAdminTab = 'dashboard';
+let activeObraId = null;
 
-// Estado do Simulador Mobile
+// Estado do Aplicativo de Campo (Colaborador)
 let mobileState = {
     currentUser: null,
     currentObra: null,
@@ -31,56 +34,102 @@ let mobileState = {
 function initDatabase() {
     if (localStorage.getItem('lirios_db_initialized')) {
         loadFromStorage();
+        
+        // Garante que a usuária Michele Santos (CEO) exista no banco de dados local
+        const micheleExists = db.users.some(u => u.email === 'michelesantos');
+        if (!micheleExists) {
+            db.users = db.users.filter(u => u.id !== 'u-ceo'); // remove CEO antigo
+            db.users.push({ id: "u-ceo", nome: "Michele Santos (CEO)", email: "michelesantos", senha: "Michele123", perfil: "CEO", ativo: true });
+            saveToStorage();
+        }
+        
+        // Recupera sessão admin ativa se persistida
+        const savedSession = localStorage.getItem('lirios_admin_session');
+        if (savedSession) {
+            adminSession = JSON.parse(savedSession);
+        }
         return;
     }
 
-    // Carga inicial de Usuários
+    // 1.1 Serviços de Limpeza Iniciais (Dinâmicos)
+    db.servicos = [
+        { chave: "GROSSA", label: "Limpeza Grossa", icon: "fa-box-open" },
+        { chave: "FINA", label: "Limpeza Fina", icon: "fa-circle-check" },
+        { chave: "PESADA", label: "Limpeza Pesada", icon: "fa-helmet-safety" },
+        { chave: "PASSADA_DE_PANO", label: "Passada de Pano", icon: "fa-broom" },
+        { chave: "LAVAGEM_POS_FORMA", label: "Lavagem pós forma", icon: "fa-shower" }
+    ];
+
+    // 1.2 Carga inicial de Usuários (CEO, Admins e Colaboradores com senhas)
     db.users = [
-        { id: "u-admin", nome: "Ana Admin (Empreiteira)", email: "admin@lirios.com.br", perfil: "ADMIN", ativo: true },
-        { id: "u-carlos", nome: "Carlos Limpeza", email: "carlos@lirios.com.br", perfil: "COLABORADOR", ativo: true },
-        { id: "u-mariana", nome: "Mariana Silveira", email: "mariana@lirios.com.br", perfil: "COLABORADOR", ativo: true },
-        { id: "u-jose", nome: "José Roberto", email: "jose@lirios.com.br", perfil: "COLABORADOR", ativo: true }
+        { id: "u-ceo", nome: "Michele Santos (CEO)", email: "michelesantos", senha: "Michele123", perfil: "CEO", ativo: true },
+        { id: "u-admin", nome: "Ana Paula (Administrador)", email: "admin@lirios.com.br", senha: "123", perfil: "ADMIN", ativo: true },
+        { id: "u-carlos", nome: "Carlos Limpeza", email: "carlos@lirios.com.br", senha: "456", perfil: "COLABORADOR", ativo: true },
+        { id: "u-jose", nome: "José Roberto", email: "jose@lirios.com.br", senha: "456", perfil: "COLABORADOR", ativo: true },
+        { id: "u-andre", nome: "André Lucas", email: "andre@lirios.com.br", senha: "456", perfil: "COLABORADOR", ativo: true }
     ];
 
-    // Carga inicial de Obras
+    // 1.3 Carga inicial de Obras com Torres Dinâmicas
     db.obras = [
-        { id: "o-fontana", nome: "Residencial Chapada Fontana", endereco: "Av. das Flores, 120", qtd_torres: 2, qtd_pavimentos: 4, apts_por_pavimento: 4 },
-        { id: "o-horizonte", nome: "Residencial Horizonte", endereco: "Rua do Sol, 45", qtd_torres: 1, qtd_pavimentos: 5, apts_por_pavimento: 6 }
+        { 
+            id: "o-fontana", 
+            nome: "Residencial Chapada Fontana",
+            torres: [
+                { nome: "Torre 01", pavimentos: 4, apts_por_pavimento: 4, qtd_halls: 1 },
+                { nome: "Torre 02", pavimentos: 4, apts_por_pavimento: 4, qtd_halls: 1 }
+            ]
+        },
+        { 
+            id: "o-horizonte", 
+            nome: "Residencial Horizonte",
+            torres: [
+                { nome: "Torre Única", pavimentos: 5, apts_por_pavimento: 6, qtd_halls: 1 }
+            ]
+        }
     ];
 
-    // Alocações Iniciais
+    // 1.4 Alocações Iniciais
     db.alocacoes = [
         { id: "al-1", obra_id: "o-fontana", usuario_id: "u-carlos" },
-        { id: "al-2", obra_id: "o-fontana", usuario_id: "u-mariana" },
-        { id: "al-3", obra_id: "o-horizonte", usuario_id: "u-mariana" },
-        { id: "al-4", obra_id: "o-horizonte", usuario_id: "u-jose" }
+        { id: "al-2", obra_id: "o-fontana", usuario_id: "u-jose" },
+        { id: "al-3", obra_id: "o-horizonte", usuario_id: "u-andre" },
+        { id: "al-4", obra_id: "o-horizonte", usuario_id: "u-carlos" }
     ];
 
-    // Matriz de Valores Iniciais
-    db.matriz = [
-        { id: "m-1", obra_id: "o-fontana", tipo_limpeza: "GROSSA", valor: 120.00 },
-        { id: "m-2", obra_id: "o-fontana", tipo_limpeza: "FINA", valor: 180.00 },
-        { id: "m-3", obra_id: "o-fontana", tipo_limpeza: "PASSADA_DE_PANO", valor: 50.00 },
-        
-        { id: "m-4", obra_id: "o-horizonte", tipo_limpeza: "GROSSA", valor: 110.00 },
-        { id: "m-5", obra_id: "o-horizonte", tipo_limpeza: "FINA", valor: 165.00 },
-        { id: "m-6", obra_id: "o-horizonte", tipo_limpeza: "PASSADA_DE_PANO", valor: 45.00 }
-    ];
+    // 1.5 Matriz de Valores Iniciais para os Serviços Iniciais nas Obras de Teste
+    const valoresFontana = { GROSSA: 120.00, FINA: 180.00, PESADA: 220.00, PASSADA_DE_PANO: 50.00, LAVAGEM_POS_FORMA: 90.00 };
+    const valoresHorizonte = { GROSSA: 110.00, FINA: 165.00, PESADA: 200.00, PASSADA_DE_PANO: 45.00, LAVAGEM_POS_FORMA: 80.00 };
 
-    // Geração automática das Unidades Físicas (Triggers/Backend Logic simulation)
+    db.servicos.forEach(srv => {
+        db.matriz.push({
+            id: `m-fontana-${srv.chave}`,
+            obra_id: "o-fontana",
+            tipo_limpeza: srv.chave,
+            valor: valoresFontana[srv.chave] || 0.00
+        });
+        db.matriz.push({
+            id: `m-horizonte-${srv.chave}`,
+            obra_id: "o-horizonte",
+            tipo_limpeza: srv.chave,
+            valor: valoresHorizonte[srv.chave] || 0.00
+        });
+    });
+
+    // 1.6 Geração das Unidades Físicas (Apartamentos e Halls)
     db.obras.forEach(obra => {
         generateUnitsForObra(obra);
     });
 
-    // Carga de limpezas concluídas mockadas (Histórico anterior)
+    // 1.7 Carga de limpezas mockadas anteriores
     const agora = new Date();
+    const hoje = new Date(agora.getTime() - 2 * 60 * 60 * 1000); 
     const ontem = new Date(agora.getTime() - 24 * 60 * 60 * 1000);
     const anteontem = new Date(agora.getTime() - 48 * 60 * 60 * 1000);
 
-    // Pegando algumas unidades geradas da Chapada Fontana para testes
-    const apto101 = db.unidades.find(u => u.obra_id === "o-fontana" && u.unidade_nome === "Apto 101" && u.torre === "Torre 1");
-    const apto102 = db.unidades.find(u => u.obra_id === "o-fontana" && u.unidade_nome === "Apto 102" && u.torre === "Torre 1");
-    const hall1 = db.unidades.find(u => u.obra_id === "o-fontana" && u.unidade_nome === "Hall" && u.torre === "Torre 1" && u.pavimento === 1);
+    const apto101 = db.unidades.find(u => u.obra_id === "o-fontana" && u.unidade_nome === "Apto 101" && u.torre === "Torre 01");
+    const apto102 = db.unidades.find(u => u.obra_id === "o-fontana" && u.unidade_nome === "Apto 102" && u.torre === "Torre 01");
+    const apto103 = db.unidades.find(u => u.obra_id === "o-fontana" && u.unidade_nome === "Apto 103" && u.torre === "Torre 01");
+    const hall1 = db.unidades.find(u => u.obra_id === "o-fontana" && u.unidade_nome === "Hall" && u.torre === "Torre 01" && u.pavimento === 1);
     
     db.limpezas = [
         {
@@ -88,50 +137,75 @@ function initDatabase() {
             unidade_id: apto101.id,
             usuario_id: "u-carlos",
             tipo_limpeza: "GROSSA",
+            data_inicio: new Date(anteontem.getTime() - 45 * 60 * 1000).toISOString(),
             data_conclusao: anteontem.toISOString(),
-            valor_gerado: 120.00
+            valor_gerado: 120.00,
+            observacao_canteiro: "Concluído sem pendências"
         },
         {
             id: "l-2",
             unidade_id: apto101.id,
             usuario_id: "u-carlos",
             tipo_limpeza: "FINA",
+            data_inicio: new Date(ontem.getTime() - 60 * 60 * 1000).toISOString(),
             data_conclusao: ontem.toISOString(),
-            valor_gerado: 180.00
+            valor_gerado: 180.00,
+            observacao_canteiro: "Faltou material para concluir metais"
         },
         {
             id: "l-3",
             unidade_id: apto102.id,
-            usuario_id: "u-mariana",
+            usuario_id: "u-jose",
             tipo_limpeza: "GROSSA",
+            data_inicio: new Date(ontem.getTime() - 30 * 60 * 1000).toISOString(),
             data_conclusao: ontem.toISOString(),
-            valor_gerado: 120.00
+            valor_gerado: 120.00,
+            observacao_canteiro: "Faltou água na torre à tarde"
         },
         {
             id: "l-4",
             unidade_id: hall1.id,
-            usuario_id: "u-mariana",
+            usuario_id: "u-jose",
             tipo_limpeza: "PASSADA_DE_PANO",
-            data_conclusao: agora.toISOString(),
-            valor_gerado: 50.00
+            data_inicio: new Date(hoje.getTime() - 20 * 60 * 1000).toISOString(),
+            data_conclusao: hoje.toISOString(),
+            valor_gerado: 50.00,
+            observacao_canteiro: ""
+        },
+        {
+            id: "l-5",
+            unidade_id: apto103.id,
+            usuario_id: "u-carlos",
+            tipo_limpeza: "PESADA",
+            data_inicio: new Date(agora.getTime() - 40 * 60 * 1000).toISOString(),
+            data_conclusao: null,
+            valor_gerado: 0.00,
+            observacao_canteiro: ""
         }
     ];
 
+    db.meta_produtividade = 4.0;
     saveToStorage();
     localStorage.setItem('lirios_db_initialized', 'true');
 }
 
-// Geração dinâmica de apartamentos e halls
+// Geração dinâmica de apartamentos e halls conforme configuração individual de cada torre
 function generateUnitsForObra(obra) {
-    for (let t = 1; t <= obra.qtd_torres; t++) {
-        const nomeTorre = `Torre ${t}`;
-        for (let p = 1; p <= obra.qtd_pavimentos; p++) {
+    if (!obra.torres || !Array.isArray(obra.torres)) return;
+
+    obra.torres.forEach((tConfig, idx) => {
+        const nomeTorre = tConfig.nome || `Torre ${idx + 1}`;
+        const totalHalls = tConfig.qtd_halls !== undefined ? parseInt(tConfig.qtd_halls) : 1;
+        const totalApts = tConfig.apts_por_pavimento !== undefined ? parseInt(tConfig.apts_por_pavimento) : 4;
+        const totalPavs = tConfig.pavimentos !== undefined ? parseInt(tConfig.pavimentos) : 4;
+
+        for (let p = 1; p <= totalPavs; p++) {
             
             // Gerar Apartamentos
-            for (let a = 1; a <= obra.apts_por_pavimento; a++) {
+            for (let a = 1; a <= totalApts; a++) {
                 const aptoNum = (p * 100) + a;
                 db.unidades.push({
-                    id: `uni-${obra.id}-${t}-${p}-${a}`,
+                    id: `uni-${obra.id}-${nomeTorre.replace(/\s+/g, '_')}-${p}-${a}`,
                     obra_id: obra.id,
                     torre: nomeTorre,
                     pavimento: p,
@@ -140,17 +214,20 @@ function generateUnitsForObra(obra) {
                 });
             }
 
-            // Gerar Hall do Pavimento
-            db.unidades.push({
-                id: `uni-${obra.id}-${t}-${p}-hall`,
-                obra_id: obra.id,
-                torre: nomeTorre,
-                pavimento: p,
-                unidade_nome: 'Hall',
-                tipo_unidade: 'HALL'
-            });
+            // Gerar Halls
+            for (let h = 1; h <= totalHalls; h++) {
+                const nomeHall = totalHalls === 1 ? 'Hall' : `Hall ${h}`;
+                db.unidades.push({
+                    id: `uni-${obra.id}-${nomeTorre.replace(/\s+/g, '_')}-${p}-hall-${h}`,
+                    obra_id: obra.id,
+                    torre: nomeTorre,
+                    pavimento: p,
+                    unidade_nome: nomeHall,
+                    tipo_unidade: 'HALL'
+                });
+            }
         }
-    }
+    });
 }
 
 function saveToStorage() {
@@ -159,83 +236,285 @@ function saveToStorage() {
 
 function loadFromStorage() {
     db = JSON.parse(localStorage.getItem('lirios_db'));
+    if (db && db.meta_produtividade === undefined) {
+        db.meta_produtividade = 4.0;
+    }
+}
+
+
+// ==========================================
+// 2. LOGICA DO PORTAL DE NAVEGAÇÃO E ENTRADA
+// ==========================================
+
+function selectPortal(type) {
+    document.getElementById('portal-entry-screen').style.display = 'none';
+    
+    if (type === 'admin') {
+        document.getElementById('admin-panel-layout').style.display = 'flex';
+        document.getElementById('admin-login-view').style.display = 'flex';
+        document.getElementById('admin-workspace').style.display = 'none';
+        
+        if (adminSession) {
+            showAdminPanel();
+        }
+    } else if (type === 'colab') {
+        document.getElementById('colab-panel-layout').style.display = 'flex';
+        mobileLogout(); // Força tela de login
+        loadMobileWorkers();
+    }
+}
+
+function backToPortal() {
+    // Esconde os layouts
+    document.getElementById('admin-panel-layout').style.display = 'none';
+    document.getElementById('colab-panel-layout').style.display = 'none';
+    
+    // Mostra o portal
+    document.getElementById('portal-entry-screen').style.display = 'flex';
 }
 
 // ==========================================
-// 2. LOGICA DO CONTROLE ADMIN (DESKTOP PANEL)
+// 3. CONTROLE DE AUTENTICAÇÃO ADMINISTRATIVA (CEO & ADMIN)
+// ==========================================
+
+function handleAdminLogin() {
+    const userVal = document.getElementById('admin-username').value.trim().toLowerCase();
+    const passVal = document.getElementById('admin-password').value;
+
+    // Procura usuário no banco que tenha perfil CEO ou ADMIN e bata com o e-mail ou nome
+    const user = db.users.find(u => {
+        if (u.perfil === 'CEO' || u.perfil === 'ADMIN') {
+            return u.email.split('@')[0] === userVal || u.email === userVal || u.nome.toLowerCase().includes(userVal);
+        }
+        return false;
+    });
+
+    if (user && user.senha === passVal) {
+        adminSession = user;
+        localStorage.setItem('lirios_admin_session', JSON.stringify(user));
+        
+        // Reset do login
+        document.getElementById('form-admin-login').reset();
+        showAdminPanel();
+    } else {
+        alert("Credenciais administrativas incorretas! Tente o usuário cadastrado com a senha definida.");
+    }
+}
+
+function showAdminPanel() {
+    if (!adminSession) return;
+
+    // Configura interface
+    document.getElementById('admin-role-badge').innerText = adminSession.perfil === 'CEO' ? 'PAINEL CENTRAL - CEO' : 'PAINEL CENTRAL - ADMIN';
+    document.getElementById('admin-logged-name').innerText = adminSession.nome;
+
+    document.getElementById('admin-login-view').style.display = 'none';
+    document.getElementById('admin-workspace').style.display = 'flex';
+
+    if (db.obras.length > 0 && !activeObraId) {
+        activeObraId = db.obras[0].id;
+    }
+
+    updateObraSelects();
+    renderAdminDashboard();
+}
+
+function handleAdminLogout() {
+    adminSession = null;
+    localStorage.removeItem('lirios_admin_session');
+
+    document.getElementById('admin-workspace').style.display = 'none';
+    document.getElementById('admin-login-view').style.display = 'flex';
+}
+
+// ==========================================
+// 4. SELETOR GLOBAL DE OBRA
+// ==========================================
+
+function handleGlobalObraChange() {
+    activeObraId = document.getElementById('global-obra-select').value;
+    
+    const matrizSelect = document.getElementById('matriz-obra-select');
+    const alocSelect = document.getElementById('alocacao-obra-select');
+    if (matrizSelect) matrizSelect.value = activeObraId;
+    if (alocSelect) alocSelect.value = activeObraId;
+
+    switchAdminTab(currentAdminTab);
+}
+
+function updateObraSelects() {
+    const globalSelect = document.getElementById('global-obra-select');
+    const matrizSelect = document.getElementById('matriz-obra-select');
+    const alocSelect = document.getElementById('alocacao-obra-select');
+    const filtroReport = document.getElementById('filtro-relatorio-obra');
+
+    if (!globalSelect) return;
+
+    const opts = db.obras.map(o => `<option value="${o.id}">${o.nome}</option>`).join('');
+    
+    globalSelect.innerHTML = opts;
+    if (activeObraId) globalSelect.value = activeObraId;
+
+    if (matrizSelect) {
+        matrizSelect.innerHTML = opts;
+        if (activeObraId) matrizSelect.value = activeObraId;
+    }
+    if (alocSelect) {
+        alocSelect.innerHTML = opts;
+        if (activeObraId) alocSelect.value = activeObraId;
+    }
+    if (filtroReport) {
+        filtroReport.innerHTML = `<option value="ALL">Todas as Obras</option>` + opts;
+        if (activeObraId) filtroReport.value = activeObraId;
+    }
+}
+
+// ==========================================
+// 5. NAVEGAÇÃO DOS PAINÉIS DE TABS ADMIN
 // ==========================================
 
 function switchAdminTab(tabId) {
     currentAdminTab = tabId;
     
-    // Atualiza navegação
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    // Adiciona classe ativa com base na função do botão
-    event.currentTarget.classList.add('active');
+    
+    const navButtons = document.querySelectorAll('.nav-btn');
+    navButtons.forEach(btn => {
+        if (btn.getAttribute('onclick').includes(tabId)) {
+            btn.classList.add('active');
+        }
+    });
 
-    // Alterna painéis de conteúdo
     document.querySelectorAll('.tab-pane').forEach(pane => {
         pane.classList.remove('active');
     });
     document.getElementById(`tab-${tabId}`).classList.add('active');
 
-    // Executa recarregamento dinâmico específico
+    loadFromStorage();
     if (tabId === 'dashboard') renderAdminDashboard();
-    else if (tabId === 'obras') renderAdminObras();
-    else if (tabId === 'matriz') renderMatrixEditor();
+    else if (tabId === 'obras') {
+        renderAdminObras();
+        resetTorreConfigCards();
+    }
+    else if (tabId === 'equipe') renderTeamTab();
+    else if (tabId === 'matriz') {
+        renderServicesList();
+        renderMatrixEditor();
+    }
     else if (tabId === 'alocacao') renderAllocationGrid();
     else if (tabId === 'relatorios') renderAuditReport();
 }
 
-// A. Renderizar Dashboard Principal
+// ==========================================
+// 6. DASHBOARD E MÉTICAS FINANCEIRAS (OBRA SELECIONADA)
+// ==========================================
+
 function renderAdminDashboard() {
     loadFromStorage();
     
-    // Faturamento Total
-    const fatTotal = db.limpezas.reduce((acc, curr) => acc + parseFloat(curr.valor_gerado), 0);
-    document.getElementById('admin-fat-total').innerText = formatCurrency(fatTotal);
+    const metaInput = document.getElementById('admin-meta-prod-input');
+    if (metaInput) {
+        metaInput.value = db.meta_produtividade !== undefined ? db.meta_produtividade : 4.0;
+    }
     
-    // Obras Ativas
-    document.getElementById('admin-obras-total').innerText = db.obras.length;
+    if (!activeObraId) {
+        document.getElementById('admin-fat-realizado').innerText = "R$ 0,00";
+
+        document.getElementById('admin-fat-previsto').innerText = "R$ 0,00";
+        document.getElementById('admin-fat-faltante').innerText = "R$ 0,00";
+        document.getElementById('admin-progresso-fisico').innerText = "0 / 0";
+        return;
+    }
+
+    const obra = db.obras.find(o => o.id === activeObraId);
+    if (!obra) return;
+
+    const unidadesObra = db.unidades.filter(u => u.obra_id === activeObraId);
+    const idsUnidades = unidadesObra.map(u => u.id);
     
-    // Limpezas Realizadas
-    document.getElementById('admin-limpezas-total').innerText = db.limpezas.length;
+    // Limpezas concluídas
+    const limpezasConcluidasObra = db.limpezas.filter(l => idsUnidades.includes(l.unidade_id) && l.data_conclusao !== null);
 
-    // Faturamento Período (Hoje, 7 dias, Mês)
-    const agora = new Date();
-    const hojeStr = agora.toISOString().split('T')[0];
+    // 1. Faturamento Realizado
+    const fatRealizado = limpezasConcluidasObra.reduce((acc, curr) => acc + parseFloat(curr.valor_gerado), 0);
+    document.getElementById('admin-fat-realizado').innerText = formatCurrency(fatRealizado);
+
+    // 2. Faturamento Previsto (Com base na lista dinâmica de serviços)
+    const precosObra = db.matriz.filter(m => m.obra_id === activeObraId);
     
-    const seteDiasAtras = new Date();
-    seteDiasAtras.setDate(agora.getDate() - 6);
-    seteDiasAtras.setHours(0, 0, 0, 0);
+    // Filtra apenas preços de serviços que ainda estão ATIVOS no db
+    const chavesServicosAtivos = db.servicos.map(s => s.chave);
+    const precosAtivos = precosObra.filter(m => chavesServicosAtivos.includes(m.tipo_limpeza));
+    
+    const somaPrecos = precosAtivos.reduce((acc, curr) => acc + parseFloat(curr.valor), 0);
+    const fatPrevisto = unidadesObra.length * somaPrecos;
+    document.getElementById('admin-fat-previsto').innerText = formatCurrency(fatPrevisto);
 
-    const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+    // 3. Faturamento Faltante
+    const fatFaltante = Math.max(0, fatPrevisto - fatRealizado);
+    document.getElementById('admin-fat-faltante').innerText = formatCurrency(fatFaltante);
 
-    let fatHoje = 0;
-    let fatSemana = 0;
-    let fatMes = 0;
+    // 4. Progresso Físico
+    const totalTarefasPossiveis = unidadesObra.length * db.servicos.length;
+    const totalTarefasConcluidas = limpezasConcluidasObra.filter(l => chavesServicosAtivos.includes(l.tipo_limpeza)).length;
+    document.getElementById('admin-progresso-fisico').innerText = `${totalTarefasConcluidas} / ${totalTarefasPossiveis}`;
 
-    db.limpezas.forEach(l => {
-        const dataL = new Date(l.data_conclusao);
-        const dataLStr = l.data_conclusao.split('T')[0];
-        const valor = parseFloat(l.valor_gerado);
-
-        if (dataLStr === hojeStr) fatHoje += valor;
-        if (dataL >= seteDiasAtras) fatSemana += valor;
-        if (dataL >= inicioMes) fatMes += valor;
-    });
-
-    document.getElementById('fat-diario').innerText = formatCurrency(fatHoje);
-    document.getElementById('fat-semanal').innerText = formatCurrency(fatSemana);
-    document.getElementById('fat-mensal').innerText = formatCurrency(fatMes);
-
-    // Gráfico de Produtividade
+    // Gráficos e painéis
     renderProductivityChart();
+    renderMissingTasksPanel(unidadesObra, limpezasConcluidasObra, precosAtivos);
 }
 
-// B. Renderização e Lógica do Gráfico de Produtividade dos Colaboradores
+function renderMissingTasksPanel(unidadesObra, limpezasConcluidasObra, precosAtivos) {
+    const container = document.getElementById('missing-tasks-container');
+    container.innerHTML = '';
+
+    const totalUnidades = unidadesObra.length;
+
+    if (totalUnidades === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px;">Nenhuma unidade física gerada.</div>`;
+        return;
+    }
+
+    if (db.servicos.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px;">Nenhum serviço de limpeza cadastrado.</div>`;
+        return;
+    }
+
+    db.servicos.forEach(srv => {
+        const precoItem = precosAtivos.find(m => m.tipo_limpeza === srv.chave);
+        const precoValor = precoItem ? parseFloat(precoItem.valor) : 0.00;
+
+        const concluidas = limpezasConcluidasObra.filter(l => l.tipo_limpeza === srv.chave).length;
+        const faltantes = Math.max(0, totalUnidades - concluidas);
+        const percentConclusao = totalUnidades > 0 ? (concluidas / totalUnidades) * 100 : 0;
+        const valorFaltanteSrv = faltantes * precoValor;
+
+        const row = document.createElement('div');
+        row.className = 'missing-task-row';
+        row.innerHTML = `
+            <div class="missing-task-row-content">
+                <div class="missing-task-info">
+                    <span class="missing-task-name">
+                        <i class="fa-solid ${srv.icon || 'fa-broom'}" style="color: var(--primary-light)"></i>
+                        <strong>${srv.label}</strong>
+                    </span>
+                    <span class="missing-task-count">${concluidas} de ${totalUnidades} concluídas</span>
+                </div>
+                <div class="missing-task-bar-outer" style="margin: 6px 0;">
+                    <div class="missing-task-bar-inner" style="width: ${percentConclusao}%"></div>
+                </div>
+                <div class="missing-task-footer">
+                    <span>Faltam: <strong>${faltantes} unidades</strong></span>
+                    <span class="missing-task-value-left">${formatCurrency(valorFaltanteSrv)} faltante</span>
+                </div>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+}
+
 function renderProductivityChart() {
     const chartContainer = document.getElementById('productivity-chart');
     chartContainer.innerHTML = '';
@@ -243,175 +522,245 @@ function renderProductivityChart() {
     const colaboradores = db.users.filter(u => u.perfil === 'COLABORADOR' && u.ativo);
     
     if (colaboradores.length === 0) {
-        chartContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding-top: 40px;">Nenhum colaborador ativo cadastrado.</div>`;
+        chartContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding-top: 40px;">Nenhum colaborador cadastrado.</div>`;
         return;
     }
 
-    // Calcula contagem de limpezas feitas por funcionário (Últimos 30 dias)
     const limite30Dias = new Date();
     limite30Dias.setDate(limite30Dias.getDate() - 30);
 
-    let totalLimpezas = 0;
-    let colaboradoresAtivosNoPeriodo = 0;
-    
-    const mapaProd = {};
-    colaboradores.forEach(c => {
-        mapaProd[c.id] = 0;
-    });
-
-    db.limpezas.forEach(l => {
-        const dataL = new Date(l.data_conclusao);
-        if (dataL >= limite30Dias && mapaProd[l.usuario_id] !== undefined) {
-            mapaProd[l.usuario_id]++;
-            totalLimpezas++;
-        }
-    });
-
-    // Número de funcionários que realizaram pelo menos 1 limpeza para calcular a média real
-    Object.values(mapaProd).forEach(qtd => {
-        if (qtd > 0) colaboradoresAtivosNoPeriodo++;
-    });
-
-    // Média global de limpezas por colaborador ativo
-    const divisor = colaboradores.length; // Usamos todos para a média global do canteiro
-    const mediaGlobal = divisor > 0 ? (totalLimpezas / divisor) : 0;
-
-    // Encontrar o maior valor de limpezas para normalizar o gráfico de barras
-    const maxLimpezas = Math.max(...Object.values(mapaProd), 5); // no mínimo 5 para não quebrar proporção
+    const targetMeta = db.meta_produtividade !== undefined ? db.meta_produtividade : 4.0;
 
     colaboradores.forEach(colab => {
-        const qtdLimpezas = mapaProd[colab.id];
-        const status = qtdLimpezas >= mediaGlobal ? 'acima' : 'abaixo';
-        const percentWidth = (qtdLimpezas / maxLimpezas) * 100;
+        const limpezasColab = db.limpezas.filter(l => l.usuario_id === colab.id && l.data_conclusao !== null && new Date(l.data_conclusao) >= limite30Dias);
+        const qtdLimpezas = limpezasColab.length;
+
+        const datasUnicas = [...new Set(limpezasColab.map(l => l.data_conclusao.split('T')[0]))];
+        const diasTrabalhados = datasUnicas.length;
+        const mediaDiaria = diasTrabalhados > 0 ? (qtdLimpezas / diasTrabalhados) : 0;
+
+        // Determinar badge e cor com base na meta diária editável
+        let performanceBadge = "";
+        let barColor = "";
         
-        // Posição proporcional do marcador de média na barra
-        const mediaMarkerPercent = (mediaGlobal / maxLimpezas) * 100;
+        if (mediaDiaria > targetMeta + 0.5) {
+            performanceBadge = `<span class="prod-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3);">ACIMA DA META</span>`;
+            barColor = "linear-gradient(90deg, #10B981, #34D399)";
+        } else if (mediaDiaria < targetMeta - 0.5) {
+            performanceBadge = `<span class="prod-badge" style="background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3);">ABAIXO DA META</span>`;
+            barColor = "linear-gradient(90deg, #EF4444, #F87171)";
+        } else {
+            performanceBadge = `<span class="prod-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3);">NA META</span>`;
+            barColor = "linear-gradient(90deg, #F59E0B, #FBBF24)";
+        }
+
+        const maxUnidadesNormalizacao = Math.max(15, targetMeta * 2);
+        const percentWidth = Math.min((mediaDiaria / maxUnidadesNormalizacao) * 100, 100);
 
         const row = document.createElement('div');
         row.className = 'productivity-row';
+        row.style.marginBottom = '20px';
         row.innerHTML = `
-            <div class="prod-header">
-                <span><i class="fa-solid fa-user-ninja" style="color: var(--text-secondary); margin-right: 6px;"></i> ${colab.nome}</span>
+            <div class="prod-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 600; color: #fff;"><i class="fa-solid fa-helmet-safety" style="color: var(--primary-light); margin-right: 6px;"></i> ${colab.nome}</span>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="prod-badge ${status}">${status.toUpperCase()} DA MÉDIA</span>
-                    <strong style="color: #fff">${qtdLimpezas} limpezas</strong>
+                    ${performanceBadge}
+                    <span style="font-size: 11px; color: var(--text-secondary);">${qtdLimpezas} limpezas no mês</span>
+                    <strong style="color: #fff; font-size: 13px;">${mediaDiaria.toFixed(1)} apts/dia</strong>
                 </div>
             </div>
-            <div class="prod-bar-outer">
-                <div class="prod-bar-inner ${status}" style="width: ${percentWidth}%"></div>
-                <!-- Linha de marcação da média -->
-                <div class="chart-marker" style="left: ${mediaMarkerPercent}%">
-                    <span class="chart-marker-label">Média (${mediaGlobal.toFixed(1)})</span>
-                </div>
+            <div class="prod-bar-outer" style="height: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; position: relative;">
+                <div class="prod-bar-inner" style="width: ${percentWidth}%; height: 100%; border-radius: 6px; background: ${barColor};"></div>
+                <!-- Linha indicadora da meta -->
+                <div style="position: absolute; left: ${(targetMeta / maxUnidadesNormalizacao) * 100}%; top: 0; bottom: 0; width: 2px; background: #fff; opacity: 0.5;" title="Meta: ${targetMeta} apts/dia"></div>
             </div>
         `;
         chartContainer.appendChild(row);
     });
 }
 
-// C. Cadastro de Obras
-function renderAdminObras() {
+function saveMetaProdutividade() {
+    const input = document.getElementById('admin-meta-prod-input');
+    if (!input) return;
+    const value = parseFloat(input.value) || 4.0;
+    
     loadFromStorage();
-    const tbody = document.querySelector('#table-obras-list tbody');
+    db.meta_produtividade = value;
+    saveToStorage();
+    
+    renderProductivityChart();
+}
+
+// ==========================================
+// 7. GERENCIAMENTO DE EQUIPE (CRUD COLABORADORES)
+// ==========================================
+
+function renderTeamTab() {
+    loadFromStorage();
+    const tbody = document.querySelector('#table-equipe-list tbody');
     tbody.innerHTML = '';
 
-    if (db.obras.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Nenhuma obra cadastrada.</td></tr>`;
-        return;
-    }
-
-    db.obras.forEach(o => {
-        // Encontrar contagem de unidades
-        const totalUni = db.unidades.filter(u => u.obra_id === o.id).length;
-        
-        // Colaboradores alocados
-        const alocados = db.alocacoes.filter(al => al.obra_id === o.id).map(al => {
-            const usr = db.users.find(u => u.id === al.usuario_id);
-            return usr ? `<span class="alloc-badge">${usr.nome}</span>` : '';
-        }).join(' ');
-
+    db.users.forEach(u => {
         const tr = document.createElement('tr');
+        
+        let perfilBadge = `<span class="prod-badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary-light); border: 1px solid rgba(99, 102, 241, 0.3);">ADMIN</span>`;
+        if (u.perfil === 'CEO') {
+            perfilBadge = `<span class="prod-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3);">CEO</span>`;
+        } else if (u.perfil === 'COLABORADOR') {
+            perfilBadge = `<span class="prod-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3);">COLABORADOR</span>`;
+        }
+
+        // Não permite excluir a própria CEO logada ou a CEO padrão
+        const isCeo = u.perfil === 'CEO';
+        const deleteButton = isCeo ? '<span style="color: var(--text-muted); font-size: 11px; font-style: italic;">Vitalício</span>' : `
+            <button class="btn-secondary" onclick="adminDeleteUser('${u.id}')" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.03); padding: 4px 8px; font-size: 11px;">
+                <i class="fa-solid fa-user-minus"></i> Excluir
+            </button>
+        `;
+
         tr.innerHTML = `
-            <td style="font-weight: 600; color: #fff;">${o.nome}</td>
-            <td>${o.qtd_torres} Torre(s) / ${o.qtd_pavimentos} Pavimentos / ${o.apts_por_pavimento} Apts por Andar</td>
-            <td><strong>${totalUni}</strong> registros</td>
-            <td>${alocados || '<span style="color: var(--text-muted)">Nenhum</span>'}</td>
-            <td>
-                <button class="btn-secondary" onclick="adminDeleteObra('${o.id}')" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">
-                    <i class="fa-solid fa-trash-can"></i> Excluir
-                </button>
-            </td>
+            <td style="font-weight: 600; color: #fff;">${u.nome}</td>
+            <td>${u.email}</td>
+            <td>${perfilBadge}</td>
+            <td>${deleteButton}</td>
         `;
         tbody.appendChild(tr);
     });
-
-    // Atualiza selects de outras abas
-    updateObraSelects();
 }
 
-function adminCreateObra() {
-    const nome = document.getElementById('obra-nome').value;
-    const torres = parseInt(document.getElementById('obra-torres').value);
-    const pavimentos = parseInt(document.getElementById('obra-pavimentos').value);
-    const apts = parseInt(document.getElementById('obra-apts').value);
+function adminCreateUser() {
+    const nome = document.getElementById('usr-nome').value.trim();
+    const email = document.getElementById('usr-email').value.trim().toLowerCase();
+    const senha = document.getElementById('usr-senha').value;
+    const perfil = document.getElementById('usr-perfil').value;
 
-    const novaObra = {
-        id: `o-${Date.now()}`,
+    // Valida email único
+    if (db.users.some(u => u.email === email)) {
+        alert("Já existe um membro cadastrado com este e-mail!");
+        return;
+    }
+
+    const novoUsuario = {
+        id: `u-${Date.now()}`,
         nome,
-        qtd_torres: torres,
-        qtd_pavimentos: pavimentos,
-        apts_por_pavimento: apts
+        email,
+        senha,
+        perfil,
+        ativo: true
     };
 
-    db.obras.push(novaObra);
-    
-    // Simula trigger do backend e cria as unidades
-    generateUnitsForObra(novaObra);
-
-    // Cria matriz padrão zerada/inicial para esta obra
-    db.matriz.push(
-        { id: `m-${Date.now()}-1`, obra_id: novaObra.id, tipo_limpeza: 'GROSSA', valor: 0.00 },
-        { id: `m-${Date.now()}-2`, obra_id: novaObra.id, tipo_limpeza: 'FINA', valor: 0.00 },
-        { id: `m-${Date.now()}-3`, obra_id: novaObra.id, tipo_limpeza: 'PASSADA_DE_PANO', valor: 0.00 }
-    );
-
+    db.users.push(novoUsuario);
     saveToStorage();
-    renderAdminObras();
 
-    // Reset Form
-    document.getElementById('form-criar-obra').reset();
-    alert(`Obra "${nome}" cadastrada! Estrutura física de unidades gerada.`);
+    document.getElementById('form-criar-colaborador').reset();
+    renderTeamTab();
+    loadMobileWorkers(); // atualiza select do mobile
+    renderAllocationGrid(); // sincroniza o grid de alocação à direita
+
+    alert(`Membro "${nome}" cadastrado com sucesso!`);
 }
 
-function adminDeleteObra(id) {
-    if (!confirm("Tem certeza que deseja excluir esta obra? Todas as unidades e limpezas vinculadas serão deletadas de forma definitiva.")) return;
+function adminDeleteUser(userId) {
+    if (!confirm("Tem certeza que deseja excluir este membro da equipe? Todas as alocações e vínculos ativos serão removidos.")) return;
+
+    db.users = db.users.filter(u => u.id !== userId);
+    db.alocacoes = db.alocacoes.filter(al => al.usuario_id !== userId);
     
-    db.obras = db.obras.filter(o => o.id !== id);
-    db.unidades = db.unidades.filter(u => u.obra_id !== id);
-    db.alocacoes = db.alocacoes.filter(al => al.obra_id !== id);
-    db.matriz = db.matriz.filter(m => m.obra_id !== id);
-    // Nota: Excluir a obra removerá o histórico de limpezas (ON DELETE CASCADE)
-    db.limpezas = db.limpezas.filter(l => {
-        const uni = db.unidades.find(u => u.id === l.unidade_id);
-        return uni && uni.obra_id === id ? false : true;
+    saveToStorage();
+    renderTeamTab();
+    loadMobileWorkers();
+    renderAllocationGrid(); // sincroniza o grid de alocação à direita
+}
+
+// ==========================================
+// 8. GERENCIAMENTO DE SERVIÇOS (CRUD SERVIÇOS)
+// ==========================================
+
+function renderServicesList() {
+    const container = document.getElementById('admin-services-list');
+    container.innerHTML = '';
+
+    if (db.servicos.length === 0) {
+        container.innerHTML = `<div style="color: var(--text-muted); font-size: 12px; font-style: italic;">Nenhum serviço cadastrado.</div>`;
+        return;
+    }
+
+    db.servicos.forEach(srv => {
+        const div = document.createElement('div');
+        div.className = 'matrix-item';
+        div.style.padding = '8px 16px';
+        div.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid ${srv.icon || 'fa-broom'}" style="color: var(--primary-light)"></i>
+                <span style="font-weight: 500; font-size: 13px;">${srv.label}</span>
+            </div>
+            <button class="btn-secondary" onclick="adminDeleteService('${srv.chave}')" style="color: var(--danger); border: none; background: transparent; padding: 4px; cursor: pointer;" title="Excluir Serviço">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function adminCreateService() {
+    const label = document.getElementById('srv-nome').value.trim();
+    if (!label) return;
+
+    // Gera chave única
+    const chave = label.toUpperCase().replace(/\s+/g, '_').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    if (db.servicos.some(s => s.chave === chave)) {
+        alert("Já existe um serviço com esse nome ou similar!");
+        return;
+    }
+
+    const novosServicosIcones = ['fa-shower', 'fa-broom', 'fa-wind', 'fa-brush', 'fa-soap', 'fa-bucket'];
+    const randomIcon = novosServicosIcones[Math.floor(Math.random() * novosServicosIcones.length)];
+
+    const novoServico = {
+        chave,
+        label,
+        icon: randomIcon
+    };
+
+    db.servicos.push(novoServico);
+
+    // Propaga o novo serviço na matriz de preços para todas as obras existentes com valor R$ 0,00
+    db.obras.forEach(o => {
+        db.matriz.push({
+            id: `m-${Date.now()}-${o.id}-${chave}`,
+            obra_id: o.id,
+            tipo_limpeza: chave,
+            valor: 0.00
+        });
     });
 
     saveToStorage();
-    renderAdminObras();
-}
-
-// D. Estúdio de Preços (Matriz de Valores)
-function updateObraSelects() {
-    const matrizSelect = document.getElementById('matriz-obra-select');
-    const alocSelect = document.getElementById('alocacao-obra-select');
-    const filtroReport = document.getElementById('filtro-relatorio-obra');
-
-    const opts = db.obras.map(o => `<option value="${o.id}">${o.nome}</option>`).join('');
+    document.getElementById('form-criar-servico').reset();
     
-    matrizSelect.innerHTML = opts;
-    alocSelect.innerHTML = opts;
-    filtroReport.innerHTML = `<option value="ALL">Todas as Obras</option>` + opts;
+    renderServicesList();
+    renderMatrixEditor();
+    renderAdminDashboard();
+
+    alert(`Serviço de limpeza "${label}" adicionado com sucesso!`);
 }
+
+function adminDeleteService(serviceKey) {
+    if (!confirm("Deseja mesmo excluir este serviço de limpeza? Ele não aparecerá mais nos novos checklists do app de campo.")) return;
+
+    // Remove do array de serviços ativos
+    db.servicos = db.servicos.filter(s => s.chave !== serviceKey);
+    
+    saveToStorage();
+    
+    renderServicesList();
+    renderMatrixEditor();
+    renderAdminDashboard();
+}
+
+// ==========================================
+// 9. MATRIZ DE PREÇOS (EDIÇÃO DOS VALORES)
+// ==========================================
 
 function renderMatrixEditor() {
     loadFromStorage();
@@ -424,25 +773,24 @@ function renderMatrixEditor() {
         return;
     }
 
-    const tipos = [
-        { key: 'GROSSA', label: 'Limpeza Grossa', icon: 'fa-box-open' },
-        { key: 'FINA', label: 'Limpeza Fina', icon: 'fa-circle-check' },
-        { key: 'PASSADA_DE_PANO', label: 'Passada de Pano', icon: 'fa-broom' }
-    ];
+    if (db.servicos.length === 0) {
+        container.innerHTML = `<div style="color: var(--text-muted); font-size: 13px;">Cadastre serviços de limpeza ativos ao lado primeiro.</div>`;
+        return;
+    }
 
-    tipos.forEach(t => {
-        const itemMatriz = db.matriz.find(m => m.obra_id === obraId && m.tipo_limpeza === t.key) || { valor: 0.00 };
+    db.servicos.forEach(srv => {
+        const itemMatriz = db.matriz.find(m => m.obra_id === obraId && m.tipo_limpeza === srv.chave) || { valor: 0.00 };
         
         const div = document.createElement('div');
         div.className = 'matrix-item';
         div.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px;">
-                <i class="fa-solid ${t.icon}" style="font-size: 18px; color: var(--primary-light)"></i>
-                <span style="font-weight: 500;">${t.label}</span>
+                <i class="fa-solid ${srv.icon || 'fa-broom'}" style="font-size: 18px; color: var(--primary-light)"></i>
+                <span style="font-weight: 500;">${srv.label}</span>
             </div>
             <div class="matrix-input-group">
                 <span class="currency-symbol">R$</span>
-                <input type="number" class="matrix-input" id="mat-input-${t.key}" step="0.01" min="0" value="${parseFloat(itemMatriz.valor).toFixed(2)}">
+                <input type="number" class="matrix-input" id="mat-input-${srv.chave}" step="0.01" min="0" value="${parseFloat(itemMatriz.valor).toFixed(2)}">
             </div>
         `;
         container.appendChild(div);
@@ -453,29 +801,238 @@ function adminSaveMatrix() {
     const obraId = document.getElementById('matriz-obra-select').value;
     if (!obraId) return;
 
-    const tipos = ['GROSSA', 'FINA', 'PASSADA_DE_PANO'];
-    
-    tipos.forEach(tipo => {
-        const inputVal = parseFloat(document.getElementById(`mat-input-${tipo}`).value) || 0;
-        const index = db.matriz.findIndex(m => m.obra_id === obraId && m.tipo_limpeza === tipo);
+    db.servicos.forEach(srv => {
+        const inputVal = parseFloat(document.getElementById(`mat-input-${srv.chave}`).value) || 0;
+        const index = db.matriz.findIndex(m => m.obra_id === obraId && m.tipo_limpeza === srv.chave);
         
         if (index !== -1) {
             db.matriz[index].valor = inputVal;
         } else {
             db.matriz.push({
-                id: `m-${Date.now()}-${tipo}`,
+                id: `m-${Date.now()}-${srv.chave}`,
                 obra_id: obraId,
-                tipo_limpeza: tipo,
+                tipo_limpeza: srv.chave,
                 valor: inputVal
             });
         }
     });
 
     saveToStorage();
-    alert("Matriz de valores salva com sucesso!");
+    alert("Preços dos serviços da obra salvos!");
+    
+    if (obraId === activeObraId) {
+        renderAdminDashboard();
+    }
 }
 
-// E. Alocação Rápida
+// ==========================================
+// 10. CADASTRO E ALOCAÇÃO DE OBRAS
+// ==========================================
+
+function renderAdminObras() {
+    loadFromStorage();
+    const tbody = document.querySelector('#table-obras-list tbody');
+    tbody.innerHTML = '';
+
+    if (db.obras.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Nenhuma obra cadastrada.</td></tr>`;
+        return;
+    }
+
+    db.obras.forEach(o => {
+        const totalUni = db.unidades.filter(u => u.obra_id === o.id).length;
+        
+        // Exibição amigável e detalhada de cada torre cadastrada na obra
+        let torresListInfo = "";
+        if (o.torres && Array.isArray(o.torres)) {
+            torresListInfo = o.torres.map(t => {
+                const hallsLabel = t.qtd_halls !== undefined ? `, ${t.qtd_halls} hall(s)` : "";
+                return `<strong>${t.nome}:</strong> ${t.pavimentos} pav. (${t.apts_por_pavimento} apts/andar${hallsLabel})`;
+            }).join('<br>');
+        } else {
+            torresListInfo = "Estrutura antiga";
+        }
+
+        const alocados = db.alocacoes.filter(al => al.obra_id === o.id).map(al => {
+            const usr = db.users.find(u => u.id === al.usuario_id);
+            return usr ? `<span class="alloc-badge">${usr.nome}</span>` : '';
+        }).join(' ');
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="font-weight: 600; color: #fff;">${o.nome}</td>
+            <td style="font-size: 11px; line-height: 1.4;">${torresListInfo}</td>
+            <td><strong>${totalUni}</strong> registros</td>
+            <td>${alocados || '<span style="color: var(--text-muted)">Nenhum</span>'}</td>
+            <td>
+                <button class="btn-secondary" onclick="adminDeleteObra('${o.id}')" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.03);">
+                    <i class="fa-solid fa-trash-can"></i> Excluir
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function adminCreateObra() {
+    const nome = document.getElementById('obra-nome').value.trim();
+    const container = document.getElementById('torres-cards-container');
+    
+    if (!container || container.children.length === 0) {
+        alert("Adicione pelo menos 1 torre para cadastrar a obra!");
+        return;
+    }
+
+    // Coleta as configurações dinâmicas de cada card de torre
+    const torresConfig = [];
+    const cards = container.getElementsByClassName('torre-config-card');
+    
+    for (let card of cards) {
+        const tNome = card.querySelector('.card-torre-nome').value.trim();
+        const tPavs = parseInt(card.querySelector('.card-torre-pavs').value) || 1;
+        const tApts = parseInt(card.querySelector('.card-torre-apts').value) || 1;
+        const tHalls = 1; // Sempre 1 hall por pavimento conforme regra de negócio implícita
+
+        if (!tNome) {
+            alert("Preencha o nome de todas as torres antes de salvar!");
+            return;
+        }
+
+        torresConfig.push({
+            nome: tNome,
+            pavimentos: tPavs,
+            apts_por_pavimento: tApts,
+            qtd_halls: tHalls
+        });
+    }
+
+    const novaObra = {
+        id: `o-${Date.now()}`,
+        nome,
+        torres: torresConfig
+    };
+
+    db.obras.push(novaObra);
+    generateUnitsForObra(novaObra);
+
+    // Inicializa a matriz com valor 0.00 para cada serviço ativo na central
+    db.servicos.forEach(srv => {
+        db.matriz.push({
+            id: `m-${Date.now()}-${novaObra.id}-${srv.chave}`,
+            obra_id: novaObra.id,
+            tipo_limpeza: srv.chave,
+            valor: 0.00
+        });
+    });
+
+    saveToStorage();
+    
+    activeObraId = novaObra.id;
+    updateObraSelects();
+
+    // Reset Form e re-inicializa cards padrão
+    document.getElementById('form-criar-obra').reset();
+    resetTorreConfigCards();
+    
+    renderAdminObras();
+    alert(`Obra "${nome}" cadastrada com sucesso com a estrutura de torres configurada!`);
+}
+
+function adminDeleteObra(id) {
+    if (!confirm("Deseja mesmo excluir esta obra? Todos os dados históricos serão apagados.")) return;
+    
+    db.obras = db.obras.filter(o => o.id !== id);
+    db.unidades = db.unidades.filter(u => u.obra_id !== id);
+    db.alocacoes = db.alocacoes.filter(al => al.obra_id !== id);
+    db.matriz = db.matriz.filter(m => m.obra_id !== id);
+    db.limpezas = db.limpezas.filter(l => {
+        const uni = db.unidades.find(u => u.id === l.unidade_id);
+        return uni && uni.obra_id === id ? false : true;
+    });
+
+    saveToStorage();
+
+    if (activeObraId === id) {
+        activeObraId = db.obras.length > 0 ? db.obras[0].id : null;
+    }
+    updateObraSelects();
+    renderAdminObras();
+}
+
+// Carregar página inicial
+window.onload = function() {
+    initDatabase();
+    
+    // Mostra o portal geral de entrada inicialmente
+    document.getElementById('portal-entry-screen').style.display = 'flex';
+    document.getElementById('admin-panel-layout').style.display = 'none';
+    document.getElementById('colab-panel-layout').style.display = 'none';
+    
+    // Inicializa cards de torres do configurador físico
+    resetTorreConfigCards();
+    
+    // Inicializa os temas do painel e do celular
+    initThemes();
+};
+
+// ==========================================
+// 13. CONFIGURADOR DINÂMICO DE TORRES (CARDS)
+// ==========================================
+
+function addNewTorreCard(nome = "", pavs = 10, apts = 4) {
+    const container = document.getElementById('torres-cards-container');
+    if (!container) return;
+
+    const cardId = `torre-card-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const cardCount = container.children.length + 1;
+    const defaultNome = nome || `Torre ${String(cardCount).padStart(2, '0')}`;
+
+    const div = document.createElement('div');
+    div.className = 'torre-config-card';
+    div.id = cardId;
+    div.innerHTML = `
+        <button type="button" class="btn-delete-card" onclick="deleteTorreCard('${cardId}')" title="Remover Torre">
+            <i class="fa-solid fa-trash-can" style="color: var(--danger);"></i>
+        </button>
+        
+        <div class="form-group" style="margin-bottom: 0;">
+            <label style="color: var(--text-secondary); font-size: 10px;">Nome da Torre / Bloco</label>
+            <input type="text" class="card-torre-nome" value="${defaultNome}" placeholder="Ex: Torre 01" required style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 12px; margin-top: 4px;">
+        </div>
+
+        <div style="display: flex; gap: 8px; width: 100%;">
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                <label style="color: var(--text-secondary); font-size: 10px;">Pavimentos</label>
+                <input type="number" class="card-torre-pavs" min="1" max="50" value="${pavs}" required style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 12px; margin-top: 4px;">
+            </div>
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                <label style="color: var(--text-secondary); font-size: 10px;">Aptos por Pav.</label>
+                <input type="number" class="card-torre-apts" min="1" max="25" value="${apts}" required style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 12px; margin-top: 4px;">
+            </div>
+        </div>
+    `;
+    container.appendChild(div);
+}
+
+function deleteTorreCard(cardId) {
+    const card = document.getElementById(cardId);
+    if (card) {
+        card.remove();
+    }
+}
+
+function resetTorreConfigCards() {
+    const container = document.getElementById('torres-cards-container');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    // Adiciona as 3 torres iniciais no formato solicitado pelo usuário (Torre 01 de 12 andares, Torre 02 de 11 andares, Torre 03 de 11 andares, com 8 aptos/andar)
+    addNewTorreCard("Torre 01", 12, 8);
+    addNewTorreCard("Torre 02", 11, 8);
+    addNewTorreCard("Torre 03", 11, 8);
+}
+
+// Alocações de Funcionários
 function renderAllocationGrid() {
     loadFromStorage();
     const obraId = document.getElementById('alocacao-obra-select').value;
@@ -503,7 +1060,6 @@ function adminSaveAllocations() {
     const obraId = document.getElementById('alocacao-obra-select').value;
     if (!obraId) return;
 
-    // Remove alocações anteriores daquela obra
     db.alocacoes = db.alocacoes.filter(al => al.obra_id !== obraId);
 
     const colaboradores = db.users.filter(u => u.perfil === 'COLABORADOR');
@@ -519,11 +1075,11 @@ function adminSaveAllocations() {
     });
 
     saveToStorage();
-    alert("Vínculos de equipe salvos com sucesso!");
-    renderAdminObras(); // recarrega a tabela de obras que mostra os badges de equipe
+    alert("Equipe alocada com sucesso!");
+    renderAdminObras();
 }
 
-// F. Relatório de Conferência
+// Relatório de Conferência
 function renderAuditReport() {
     loadFromStorage();
     const obraFiltro = document.getElementById('filtro-relatorio-obra').value;
@@ -538,17 +1094,14 @@ function renderAuditReport() {
     seteDiasAtras.setHours(0,0,0,0);
     const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
 
-    // Filtra limpezas
     const limpezasFiltradas = db.limpezas.filter(l => {
         const uni = db.unidades.find(u => u.id === l.unidade_id);
         if (!uni) return false;
 
-        // Filtro por obra
         if (obraFiltro !== 'ALL' && uni.obra_id !== obraFiltro) return false;
 
-        // Filtro por período
         const dataL = new Date(l.data_conclusao);
-        const dataLStr = l.data_conclusao.split('T')[0];
+        const dataLStr = l.data_conclusao ? l.data_conclusao.split('T')[0] : "";
 
         if (periodoFiltro === 'TODAY' && dataLStr !== hojeStr) return false;
         if (periodoFiltro === 'WEEK' && dataL < seteDiasAtras) return false;
@@ -558,61 +1111,75 @@ function renderAuditReport() {
     });
 
     if (limpezasFiltradas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Nenhuma limpeza encontrada no período selecionado.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Nenhum serviço registrado.</td></tr>`;
         return;
     }
 
-    // Ordena por data decrescente (mais recente primeiro)
-    limpezasFiltradas.sort((a,b) => new Date(b.data_conclusao) - new Date(a.data_conclusao));
+    limpezasFiltradas.sort((a,b) => new Date(b.data_inicio) - new Date(a.data_inicio));
 
     limpezasFiltradas.forEach(l => {
         const uni = db.unidades.find(u => u.id === l.unidade_id);
         const obra = db.obras.find(o => o.id === uni.obra_id);
         const colab = db.users.find(u => u.id === l.usuario_id);
-        const dataFormatada = new Date(l.data_conclusao).toLocaleString('pt-BR');
+        
+        const formatInicio = new Date(l.data_inicio).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        const formatFim = l.data_conclusao ? new Date(l.data_conclusao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : `<span style="color: var(--warning);"><i class="fa-solid fa-spinner fa-spin"></i> Em Execução</span>`;
+        
+        const labelServico = db.servicos.find(s => s.chave === l.tipo_limpeza)?.label || l.tipo_limpeza.replace(/_/g, ' ');
+        const observacaoStr = l.observacao_canteiro ? l.observacao_canteiro : `<span style="color: var(--text-muted); font-style: italic;">Nenhuma</span>`;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${dataFormatada}</td>
-            <td><strong>${obra.nome}</strong><br><span style="font-size: 11px; color: var(--text-secondary);">${uni.torre} - Andar ${uni.pavimento} - ${uni.unidade_nome}</span></td>
-            <td style="font-weight: 500;">${colab ? colab.nome : 'Excluído'}</td>
+            <td style="font-size: 11px; line-height: 1.4;">
+                <span style="color: var(--text-secondary); display: block;">Início: ${formatInicio}</span>
+                <span style="color: #fff; display: block;">Fim: ${formatFim}</span>
+            </td>
+            <td><strong>${obra.nome}</strong><br><span style="font-size: 11px; color: var(--text-secondary);">${uni.torre} - ${uni.unidade_nome} (Andar ${uni.pavimento})</span></td>
+            <td style="font-weight: 500;">${colab ? colab.nome : 'Desconhecido'}</td>
             <td>
-                <span class="prod-badge" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border-color)">
-                    ${l.tipo_limpeza.replace(/_/g, ' ')}
+                <span class="prod-badge" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border-color); text-transform: uppercase;">
+                    ${labelServico}
                 </span>
             </td>
-            <td style="text-align: right; font-weight: 700; color: var(--success);">${formatCurrency(l.valor_gerado)}</td>
+            <td style="font-size: 12px; color: #fff;">${observacaoStr}</td>
+            <td style="text-align: right; font-weight: 700; color: ${l.data_conclusao ? 'var(--success)' : 'var(--text-muted)'};">${l.data_conclusao ? formatCurrency(l.valor_gerado) : 'R$ 0,00'}</td>
         `;
         tbody.appendChild(tr);
     });
 }
 
 // ==========================================
-// 3. LOGICA DO SIMULADOR MOBILE (COLABORADOR APP)
+// 11. LOGICA DO SIMULADOR MOBILE (COLABORADOR APP)
 // ==========================================
 
 function loadMobileWorkers() {
     const select = document.getElementById('mobile-user-select');
+    if (!select) return;
     const colaboradores = db.users.filter(u => u.perfil === 'COLABORADOR' && u.ativo);
-    
     select.innerHTML = colaboradores.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
 }
 
 function mobileLogin() {
+    loadFromStorage();
     const userId = document.getElementById('mobile-user-select').value;
+    const passVal = document.getElementById('mobile-user-pass').value;
+
     const user = db.users.find(u => u.id === userId);
     
-    if (!user) return;
+    if (user && user.senha === passVal) {
+        mobileState.currentUser = user;
 
-    mobileState.currentUser = user;
+        // Limpa input de senha para segurança
+        document.getElementById('mobile-user-pass').value = '';
 
-    // Atualiza layout do rodapé
-    document.getElementById('mobile-footer-username').innerText = user.nome;
-    document.getElementById('mobile-footer').style.display = 'flex';
+        document.getElementById('mobile-footer-username').innerText = user.nome;
+        document.getElementById('mobile-footer').style.display = 'flex';
 
-    // Transição de tela
-    mobileNavigate('obras');
-    renderMobileObras();
+        mobileNavigate('obras');
+        renderMobileObras();
+    } else {
+        alert("Senha de colaborador incorreta! Tente a senha cadastrada na central administrativa.");
+    }
 }
 
 function mobileLogout() {
@@ -625,6 +1192,7 @@ function mobileLogout() {
     };
 
     document.getElementById('mobile-footer').style.display = 'none';
+    document.getElementById('mobile-user-pass').value = '';
     mobileNavigate('login');
 }
 
@@ -632,14 +1200,13 @@ function renderMobileObras() {
     const container = document.getElementById('mobile-obras-list');
     container.innerHTML = '';
 
-    // Filtra obras que o colaborador está alocado
     const obrasAlocadas = db.alocacoes
         .filter(al => al.usuario_id === mobileState.currentUser.id)
         .map(al => db.obras.find(o => o.id === al.obra_id))
         .filter(o => o !== undefined);
 
     if (obrasAlocadas.length === 0) {
-        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding-top: 40px;">Você não está alocado a nenhuma obra ativa. Contate o administrador.</div>`;
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding-top: 40px;">Você não está alocado a nenhuma obra ativa.</div>`;
         return;
     }
 
@@ -650,7 +1217,7 @@ function renderMobileObras() {
         div.innerHTML = `
             <div>
                 <div class="mobile-card-title">${o.nome}</div>
-                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">${o.qtd_torres} torre(s) cadastrada(s)</div>
+                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Acesso ao Canteiro de Obras</div>
             </div>
             <i class="fa-solid fa-chevron-right chevron-icon"></i>
         `;
@@ -671,7 +1238,6 @@ function renderMobileTorres() {
     const container = document.getElementById('mobile-torres-list');
     container.innerHTML = '';
 
-    // Pega torres únicas cadastradas para a obra
     const unidadesObra = db.unidades.filter(u => u.obra_id === mobileState.currentObra.id);
     const torres = [...new Set(unidadesObra.map(u => u.torre))].sort();
 
@@ -699,14 +1265,14 @@ function renderMobilePavimentos() {
     container.innerHTML = '';
 
     const unidadesTorre = db.unidades.filter(u => u.obra_id === mobileState.currentObra.id && u.torre === mobileState.currentTorre);
-    const pavimentos = [...new Set(unidadesTorre.map(u => u.pavimento))].sort((a,b) => b - a); // ordem decrescente (torrinha)
+    const pavimentos = [...new Set(unidadesTorre.map(u => u.pavimento))].sort((a,b) => b - a);
 
     pavimentos.forEach(p => {
         const div = document.createElement('div');
         div.className = 'mobile-card';
         div.onclick = () => mobileSelectPavimento(p);
         div.innerHTML = `
-            <div class="mobile-card-title">${p}º Pavimento (Andar)</div>
+            <div class="mobile-card-title">${p}º Pavimento</div>
             <i class="fa-solid fa-chevron-right chevron-icon"></i>
         `;
         container.appendChild(div);
@@ -731,27 +1297,42 @@ function renderMobileUnidades() {
     ).sort((a,b) => a.unidade_nome.localeCompare(b.unidade_nome));
 
     unidades.forEach(uni => {
-        // Encontra histórico de limpezas dessa unidade específica
         const limpezasFeitas = db.limpezas.filter(l => l.unidade_id === uni.id);
-        const grossaFeita = limpezasFeitas.some(l => l.tipo_limpeza === 'GROSSA');
-        const finaFeita = limpezasFeitas.some(l => l.tipo_limpeza === 'FINA');
-        const passadaFeita = limpezasFeitas.some(l => l.tipo_limpeza === 'PASSADA_DE_PANO');
+        
+        // Verifica o estado de cada serviço ATIVO cadastrado na central
+        const badgeRowHTML = db.servicos.map(srv => {
+            const state = getServiceState(limpezasFeitas, srv.chave);
+            const microLetter = srv.label.charAt(0);
+            return `<span class="badge-micro" title="${srv.label}" style="${getMicroBadgeColor(state)}">${microLetter}</span>`;
+        }).join('');
 
         const isHall = uni.tipo_unidade === 'HALL';
 
         const cell = document.createElement('div');
         cell.className = `grid-cell ${isHall ? 'hall' : ''}`;
         cell.onclick = () => mobileSelectUnidade(uni.id);
+        
         cell.innerHTML = `
             <div class="grid-cell-title">${uni.unidade_nome}</div>
-            <div class="badge-row">
-                <span class="badge-micro ${grossaFeita ? 'active' : ''}" title="Limpeza Grossa">G</span>
-                <span class="badge-micro ${finaFeita ? 'active' : ''}" title="Limpeza Fina">F</span>
-                <span class="badge-micro ${passadaFeita ? 'active' : ''}" title="Passada de Pano">P</span>
+            <div class="badge-row" style="margin-top: 4px; display: flex; gap: 3px;">
+                ${badgeRowHTML}
             </div>
         `;
         grid.appendChild(cell);
     });
+}
+
+function getServiceState(limpezas, srvType) {
+    const log = limpezas.find(l => l.tipo_limpeza === srvType);
+    if (!log) return 'DISPONIVEL';
+    if (log.data_conclusao === null) return 'EM_ANDAMENTO';
+    return 'CONCLUIDO';
+}
+
+function getMicroBadgeColor(state) {
+    if (state === 'CONCLUIDO') return 'background-color: var(--success); color: #fff; font-weight: bold;';
+    if (state === 'EM_ANDAMENTO') return 'background-color: var(--warning); color: #000; font-weight: bold;';
+    return 'background-color: rgba(255,255,255,0.06); color: var(--text-muted);';
 }
 
 function mobileSelectUnidade(unidadeId) {
@@ -760,90 +1341,187 @@ function mobileSelectUnidade(unidadeId) {
 
     document.getElementById('mobile-detalhe-title').innerText = uni.unidade_nome;
     document.getElementById('mobile-detalhe-subtitle').innerText = `${mobileState.currentTorre} - ${uni.pavimento}º Andar`;
+    
     mobileNavigate('detalhe');
-    renderMobileChecklist();
+    
+    // Renderiza dinamicamente as opções do Select móvel com os Serviços Ativos
+    const select = document.getElementById('mobile-service-select');
+    select.innerHTML = db.servicos.map(s => `<option value="${s.chave}">${s.label}</option>`).join('');
+
+    // Reseta observação
+    document.getElementById('mobile-obs-text').value = '';
+
+    handleMobileServiceSelectChange();
+    renderMobileUnitHistory();
 }
 
-function renderMobileChecklist() {
-    const container = document.getElementById('mobile-checklist-cards');
-    container.innerHTML = '';
-
+function handleMobileServiceSelectChange() {
+    loadFromStorage();
+    const serviceType = document.getElementById('mobile-service-select').value;
     const uni = mobileState.currentUnidade;
     
-    // Filtra histórico da unidade
-    const limpezasFeitas = db.limpezas.filter(l => l.unidade_id === uni.id);
+    if (!serviceType) return;
 
-    const checkItems = [
-        { key: 'GROSSA', label: 'Limpeza Grossa', desc: 'Remoção de resíduos pesados e entulhos de obra.' },
-        { key: 'FINA', label: 'Limpeza Fina', desc: 'Limpeza detalhada de vidros, pisos, louças e acabamentos.' },
-        { key: 'PASSADA_DE_PANO', label: 'Passada de Pano', desc: 'Higienização de manutenção pré-entrega.' }
-    ];
+    const logsUnidade = db.limpezas.filter(l => l.unidade_id === uni.id);
+    const logServico = logsUnidade.find(l => l.tipo_limpeza === serviceType);
 
-    checkItems.forEach(item => {
-        const registro = limpezasFeitas.find(l => l.tipo_limpeza === item.key);
-        const concluida = registro !== undefined;
+    const statusBox = document.getElementById('mobile-service-status-box');
+    const obsSection = document.getElementById('mobile-obs-section');
+    const actionsContainer = document.getElementById('mobile-action-buttons-container');
 
-        const card = document.createElement('div');
-        card.className = 'checklist-card';
+    statusBox.className = '';
+    obsSection.style.display = 'none';
+    actionsContainer.innerHTML = '';
+
+    if (!logServico) {
+        statusBox.classList.add('status-disponivel');
+        statusBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Serviço disponível para início.`;
         
-        let actionHTML = '';
-        if (concluida) {
-            const executor = db.users.find(u => u.id === registro.usuario_id);
-            const dataStr = new Date(registro.data_conclusao).toLocaleDateString('pt-BR');
-            const horaStr = new Date(registro.data_conclusao).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            
-            actionHTML = `
-                <div class="checklist-completed-info">
-                    <i class="fa-solid fa-circle-check"></i>
-                    <span>✓ Concluída por ${executor ? executor.nome : 'Equipe'} em ${dataStr} às ${horaStr}</span>
-                </div>
-            `;
-        } else {
-            actionHTML = `
-                <button class="btn-mobile-primary" onclick="mobileCompleteCleaning('${item.key}')" style="margin-top: 10px;">
-                    <i class="fa-solid fa-check"></i> Finalizar Tarefa
-                </button>
-            `;
-        }
-
-        card.innerHTML = `
-            <div class="checklist-title">${item.label}</div>
-            <div class="checklist-info">${item.desc}</div>
-            ${actionHTML}
+        actionsContainer.innerHTML = `
+            <button class="btn-mobile-primary" onclick="mobileStartCleaning('${serviceType}')">
+                <i class="fa-solid fa-play"></i> Iniciar Limpeza
+            </button>
         `;
-        container.appendChild(card);
-    });
+    } else if (logServico.data_conclusao === null) {
+        statusBox.classList.add('status-em-andamento');
+        
+        const horaInicio = new Date(logServico.data_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        statusBox.innerHTML = `<i class="fa-solid fa-hourglass-half fa-spin"></i> Em andamento. Iniciado às: <strong>${horaInicio}</strong>`;
+        
+        obsSection.style.display = 'block';
+        document.getElementById('mobile-obs-text').value = logServico.observacao_canteiro || "";
+
+        actionsContainer.innerHTML = `
+            <button class="btn-mobile-primary" style="background: linear-gradient(90deg, #10B981, #059669); border: none;" onclick="mobileFinishCleaning('${logServico.id}')">
+                <i class="fa-solid fa-circle-check"></i> Finalizar Limpeza (Check)
+            </button>
+            <button class="btn-secondary" style="border: 1px solid rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05); color: var(--danger); font-size: 11px; font-weight: 600; padding: 8px;" onclick="mobileCancelCleaning('${logServico.id}')">
+                Cancelar Início
+            </button>
+        `;
+    } else {
+        statusBox.classList.add('status-concluido');
+        
+        const formatFim = new Date(logServico.data_conclusao).toLocaleString('pt-BR');
+        const executor = db.users.find(u => u.id === logServico.usuario_id);
+        
+        statusBox.innerHTML = `
+            <div style="margin-bottom: 4px;"><i class="fa-solid fa-circle-check"></i> <strong>Serviço Concluído!</strong></div>
+            <div>Por: ${executor ? executor.nome : 'Time'}</div>
+            <div>Em: ${formatFim}</div>
+            <div style="margin-top: 4px; font-style: italic; color: var(--text-primary)">Obs: ${logServico.observacao_canteiro || 'Nenhuma'}</div>
+        `;
+    }
 }
 
-function mobileCompleteCleaning(tipo) {
+function appendMobileObs(text) {
+    const textarea = document.getElementById('mobile-obs-text');
+    if (textarea.value.trim() === "") {
+        textarea.value = text;
+    } else {
+        textarea.value += ", " + text;
+    }
+}
+
+function mobileStartCleaning(tipo) {
     const uni = mobileState.currentUnidade;
     const colab = mobileState.currentUser;
-
-    // Busca valor configurado na matriz para esta obra
-    const precoConfig = db.matriz.find(m => m.obra_id === uni.obra_id && m.tipo_limpeza === tipo);
-    const valorSnap = precoConfig ? parseFloat(precoConfig.valor) : 0.00;
 
     const novoLog = {
         id: `l-${Date.now()}`,
         unidade_id: uni.id,
         usuario_id: colab.id,
         tipo_limpeza: tipo,
-        data_conclusao: new Date().toISOString(),
-        valor_gerado: valorSnap
+        data_inicio: new Date().toISOString(),
+        data_conclusao: null,
+        valor_gerado: 0.00,
+        observacao_canteiro: ""
     };
 
     db.limpezas.push(novoLog);
     saveToStorage();
 
-    // Feedback visual do simulador
-    showToast("Sucesso! Registro de limpeza gravado.");
+    showToast("Serviço iniciado!");
     
-    // Atualiza telas
-    renderMobileChecklist();
-    
-    // Re-calcula dashboards na parte administrativa no mesmo instante
+    handleMobileServiceSelectChange();
+    renderMobileUnidades();
     renderAdminDashboard();
     renderAuditReport();
+}
+
+function mobileCancelCleaning(logId) {
+    if (!confirm("Deseja mesmo cancelar a limpeza?")) return;
+
+    db.limpezas = db.limpezas.filter(l => l.id !== logId);
+    saveToStorage();
+
+    showToast("Serviço cancelado.");
+    handleMobileServiceSelectChange();
+    renderMobileUnidades();
+    renderAdminDashboard();
+    renderAuditReport();
+}
+
+function mobileFinishCleaning(logId) {
+    const obsText = document.getElementById('mobile-obs-text').value.trim();
+    const uni = mobileState.currentUnidade;
+    
+    const index = db.limpezas.findIndex(l => l.id === logId);
+    if (index === -1) return;
+
+    const tipo = db.limpezas[index].tipo_limpeza;
+
+    const precoConfig = db.matriz.find(m => m.obra_id === uni.obra_id && m.tipo_limpeza === tipo);
+    const valorSnap = precoConfig ? parseFloat(precoConfig.valor) : 0.00;
+
+    db.limpezas[index].data_conclusao = new Date().toISOString();
+    db.limpezas[index].valor_gerado = valorSnap;
+    db.limpezas[index].observacao_canteiro = obsText;
+
+    saveToStorage();
+    showToast("Limpeza finalizada com sucesso!");
+
+    handleMobileServiceSelectChange();
+    renderMobileUnitHistory();
+    renderMobileUnidades();
+    
+    renderAdminDashboard();
+    renderAuditReport();
+}
+
+function renderMobileUnitHistory() {
+    const container = document.getElementById('mobile-unit-history-list');
+    container.innerHTML = '';
+
+    const uni = mobileState.currentUnidade;
+    const limpezasFeitas = db.limpezas.filter(l => l.unidade_id === uni.id && l.data_conclusao !== null);
+
+    if (limpezasFeitas.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 11px; padding: 10px;">Nenhum serviço finalizado.</div>`;
+        return;
+    }
+
+    limpezasFeitas.forEach(log => {
+        const executor = db.users.find(u => u.id === log.usuario_id);
+        const dataStr = new Date(log.data_conclusao).toLocaleDateString('pt-BR');
+        const labelSrv = db.servicos.find(s => s.chave === log.tipo_limpeza)?.label || log.tipo_limpeza.replace(/_/g, ' ');
+
+        const div = document.createElement('div');
+        div.className = 'mobile-card';
+        div.style.padding = '10px';
+        div.style.background = 'rgba(255,255,255,0.02)';
+        div.innerHTML = `
+            <div style="width: 100%;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; color: var(--success);">
+                    <span>${labelSrv}</span>
+                    <span style="font-size: 10px; color: var(--text-secondary); font-weight: normal;">${dataStr}</span>
+                </div>
+                <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Por: ${executor ? executor.nome : 'Time'}</div>
+                ${log.observacao_canteiro ? `<div style="font-size: 11px; margin-top: 4px; color: var(--text-primary);"><i class="fa-solid fa-comment-dots"></i> ${log.observacao_canteiro}</div>` : ''}
+            </div>
+        `;
+        container.appendChild(div);
+    });
 }
 
 function showToast(mensagem) {
@@ -856,12 +1534,14 @@ function showToast(mensagem) {
     }, 2500);
 }
 
-// Helpers de Navegação do simulador mobile
 function mobileNavigate(screenId) {
     document.querySelectorAll('.mobile-view').forEach(view => {
+        view.style.display = 'none';
         view.classList.remove('active');
     });
-    document.getElementById(`m-screen-${screenId}`).classList.add('active');
+    const el = document.getElementById(`m-screen-${screenId}`);
+    el.style.display = 'flex';
+    el.classList.add('active');
 }
 
 function mobileBackToObras() {
@@ -885,33 +1565,80 @@ function mobileBackToUnidades() {
 }
 
 // ==========================================
-// 4. METODOS GERAIS E INICIALIZAÇÃO DA PAGINA
+// 12. METODOS GERAIS E INICIALIZAÇÃO DA PAGINA
 // ==========================================
 
 function formatCurrency(valor) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 }
 
-// Relógio simulador
-function updatePhoneClock() {
-    const agora = new Date();
-    const horas = String(agora.getHours()).padStart(2, '0');
-    const minutos = String(agora.getMinutes()).padStart(2, '0');
-    document.getElementById('phone-clock').innerText = `${horas}:${minutos}`;
+// ==========================================
+// CONTROLE DE TEMAS (ADMIN & MOBILE)
+// ==========================================
+
+function initThemes() {
+    loadFromStorage();
+    
+    // Recupera temas salvos
+    const adminTheme = localStorage.getItem('lirios_theme_admin') || 'theme-dark-classic';
+    const mobileTheme = localStorage.getItem('lirios_theme_mobile') || 'theme-dark-classic';
+    
+    applyAdminTheme(adminTheme);
+    applyMobileTheme(mobileTheme);
+    
+    // Configura selects se existirem na página
+    const adminSelect = document.getElementById('admin-theme-select');
+    if (adminSelect) adminSelect.value = adminTheme;
+    
+    const mobileSelect = document.getElementById('mobile-theme-select');
+    if (mobileSelect) mobileSelect.value = mobileTheme;
+    
+    const mobileSelectFooter = document.getElementById('mobile-theme-select-footer');
+    if (mobileSelectFooter) mobileSelectFooter.value = mobileTheme;
 }
 
-// Carregar página inicial
-window.onload = function() {
-    initDatabase();
+function changeAdminTheme() {
+    const theme = document.getElementById('admin-theme-select').value;
+    applyAdminTheme(theme);
+}
+
+function applyAdminTheme(theme) {
+    const adminLayout = document.getElementById('admin-panel-layout');
+    if (!adminLayout) return;
     
-    // Carregar UI Admin
-    updateObraSelects();
-    renderAdminDashboard();
+    // Remove classes antigas
+    adminLayout.classList.remove('theme-dark-classic', 'theme-light-elegant', 'theme-emerald-neon', 'theme-volcano-orange');
+    // Adiciona a nova
+    adminLayout.classList.add(theme);
     
-    // Carregar UI Mobile
-    loadMobileWorkers();
+    localStorage.setItem('lirios_theme_admin', theme);
+}
+
+function changeMobileTheme() {
+    const theme = document.getElementById('mobile-theme-select').value;
+    applyMobileTheme(theme);
     
-    // Relógio do Celular
-    updatePhoneClock();
-    setInterval(updatePhoneClock, 1000);
-};
+    // Sincroniza o select do rodapé se ele existir
+    const footerSelect = document.getElementById('mobile-theme-select-footer');
+    if (footerSelect) footerSelect.value = theme;
+}
+
+function changeMobileThemeFooter() {
+    const theme = document.getElementById('mobile-theme-select-footer').value;
+    applyMobileTheme(theme);
+    
+    // Sincroniza o select da tela de login
+    const loginSelect = document.getElementById('mobile-theme-select');
+    if (loginSelect) loginSelect.value = theme;
+}
+
+function applyMobileTheme(theme) {
+    const colabLayout = document.getElementById('colab-panel-layout');
+    if (!colabLayout) return;
+    
+    colabLayout.classList.remove('theme-dark-classic', 'theme-light-elegant', 'theme-emerald-neon', 'theme-volcano-orange');
+    colabLayout.classList.add(theme);
+    
+    localStorage.setItem('lirios_theme_mobile', theme);
+}
+

@@ -879,60 +879,567 @@ input:focus, select:focus {
     display: inline-block;
 }
 
-/* Responsive adjustments */
+/* ==========================================
+   ESTILOS DO PORTAL DE ENTRADA UNIFICADO
+   ========================================== */
+
+.portal-entry-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--bg-main);
+    background-image: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+                      radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.12) 0%, transparent 45%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.portal-container {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.portal-logo {
+    font-family: 'Outfit', sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    text-align: center;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.portal-sub {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    -webkit-text-fill-color: var(--text-secondary);
+}
+
+.portal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    width: 100%;
+}
+
+.portal-card {
+    padding: 36px 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--bg-card);
+}
+
+.portal-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary-light);
+    background: var(--bg-card-hover);
+    box-shadow: 0 15px 35px rgba(99, 102, 241, 0.15);
+}
+
+.portal-card-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    color: var(--primary-light);
+    transition: var(--transition-fast);
+}
+
+.portal-card:hover .portal-card-icon {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 0 15px rgba(95, 90, 246, 0.4);
+}
+
+.portal-card h3 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.portal-card p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.portal-action-btn {
+    margin-top: auto;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary-light);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Moldura PWA Centralizada no Computador */
+.smartphone-web-frame {
+    width: 410px;
+    height: 820px;
+    background: #0d0f17;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    background-image: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.1) 0%, transparent 60%);
+}
+
+/* Media Queries Responsivas */
 @media (max-width: 768px) {
-    /* No celular físico: oculta o painel admin e exibe o app em tela cheia */
-    .admin-container {
-        display: none !important;
+    .portal-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
     }
     
-    .mobile-simulator-container {
-        width: 100vw !important;
-        height: 100vh !important;
-        padding: 0 !important;
+    .portal-logo {
+        font-size: 38px;
+        margin-bottom: 24px;
+    }
+
+    #colab-panel-layout {
         background: var(--bg-main) !important;
+        padding: 0 !important;
     }
-    
-    .smartphone-frame {
+
+    .smartphone-web-frame {
         width: 100vw !important;
         height: 100vh !important;
         border: none !important;
         border-radius: 0 !important;
         box-shadow: none !important;
     }
-    
-    .phone-notch {
-        display: none !important;
-    }
-    
-    .phone-status-bar {
-        display: none !important; /* Usa a barra de status real do aparelho */
-    }
-    
-    .phone-screen {
-        padding-top: 10px !important;
-    }
 }
 
-@media (min-width: 769px) and (max-width: 1100px) {
-    .app-wrapper {
-        flex-direction: column;
-        overflow-y: auto;
-    }
-    
-    .admin-container {
-        height: auto;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-    }
-    
-    .mobile-simulator-container {
-        width: 100%;
-        height: auto;
-        padding: 40px 0;
-    }
-    
-    body {
-        overflow-y: auto;
-    }
+
+/* ==========================================
+   NOVOS ESTILOS: VERSÃO EVOLUÍDA DO LÍRIOS
+   ========================================== */
+
+/* Layout CEO/Admin Sem Simulador (Tela Cheia) */
+.app-wrapper.hide-simulator .mobile-simulator-container {
+    display: none !important;
 }
+
+.app-wrapper.hide-simulator .admin-container {
+    border-right: none !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    flex: 0 0 100% !important;
+}
+
+/* Card de Login Central */
+.admin-login-view {
+    background-image: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+                      radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.12) 0%, transparent 45%);
+}
+
+.admin-login-card {
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Estilo para Caixa de Status no Mobile */
+#mobile-service-status-box.status-disponivel {
+    border-color: rgba(107, 114, 128, 0.3);
+    color: var(--text-secondary);
+}
+
+#mobile-service-status-box.status-em-andamento {
+    background: var(--warning-bg) !important;
+    border-color: rgba(245, 158, 11, 0.3) !important;
+    color: var(--warning);
+}
+
+#mobile-service-status-box.status-concluido {
+    background: var(--success-bg) !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+    color: var(--success);
+}
+
+/* Barras de Progresso de Tarefas Faltantes */
+.missing-task-row {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.missing-task-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.missing-task-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+}
+
+.missing-task-count {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.missing-task-bar-outer {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+}
+
+.missing-task-bar-inner {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--primary-light), var(--primary));
+    transition: width 0.4s ease;
+}
+
+.missing-task-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.missing-task-value-left {
+    color: var(--success);
+    font-weight: 600;
+}
+
+/* ==========================================================
+   CARDS DE CONFIGURAÇÃO DE TORRE DINÂMICOS (PAINEL ADMIN)
+   ========================================================== */
+.torre-config-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    width: 250px;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transition: var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.torre-config-card:hover {
+    border-color: rgba(99, 102, 241, 0.3);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.btn-delete-card {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: transparent;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 13px;
+    transition: var(--transition-fast);
+    padding: 4px;
+    opacity: 0.7;
+}
+
+.btn-delete-card:hover {
+    transform: scale(1.15);
+    opacity: 1;
+}
+
+.torre-config-card label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.torre-config-card input {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px 10px;
+    font-size: 13px;
+    border-radius: 6px;
+    width: 100%;
+}
+
+.torre-config-card {
+    border: 1px solid rgba(234, 179, 8, 0.15);
+    background: rgba(234, 179, 8, 0.02);
+}
+
+.torre-config-card:hover {
+    border-color: rgba(234, 179, 8, 0.45);
+    background: rgba(234, 179, 8, 0.04);
+}
+
+.prod-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* ==========================================================
+   SISTEMA DE TEMAS DINÂMICOS (SITE E CELULAR)
+   ========================================================== */
+
+/* 1. Tema Dark Clássico (Lírios Dark) - Padrão */
+.theme-dark-classic {
+    --bg-main: #090D1A;
+    --bg-card: rgba(17, 25, 46, 0.7);
+    --bg-card-hover: rgba(26, 37, 68, 0.85);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-focus: rgba(99, 102, 241, 0.5);
+    
+    --primary: #5f5af6;
+    --primary-light: #818cf8;
+    --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    
+    --text-primary: #F3F4F6;
+    --text-secondary: #9CA3AF;
+    --text-muted: #6B7280;
+}
+
+/* 2. Tema Claro Elegante */
+.theme-light-elegant {
+    --bg-main: #f3f4f6;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --bg-card-hover: rgba(255, 255, 255, 0.95);
+    --border-color: rgba(0, 0, 0, 0.1);
+    --border-focus: rgba(79, 70, 229, 0.5);
+    
+    --primary: #4f46e5;
+    --primary-light: #6366f1;
+    --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    
+    --text-primary: #111827;
+    --text-secondary: #374151;
+    --text-muted: #6B7280;
+}
+
+.theme-light-elegant h3,
+.theme-light-elegant h4,
+.theme-light-elegant p,
+.theme-light-elegant td,
+.theme-light-elegant th,
+.theme-light-elegant label,
+.theme-light-elegant .logo-text,
+.theme-light-elegant .logo-sub,
+.theme-light-elegant .portal-sub,
+.theme-light-elegant .portal-card h3,
+.theme-light-elegant .portal-card p,
+.theme-light-elegant .metric-value,
+.theme-light-elegant .missing-task-name strong,
+.theme-light-elegant .missing-task-count,
+.theme-light-elegant .missing-task-footer span strong,
+.theme-light-elegant .prod-header span,
+.theme-light-elegant .prod-header strong,
+.theme-light-elegant .mobile-title,
+.theme-light-elegant .mobile-card-title,
+.theme-light-elegant .grid-cell-title,
+.theme-light-elegant .checklist-title,
+.theme-light-elegant .checklist-info,
+.theme-light-elegant #admin-logged-name,
+.theme-light-elegant .form-group label,
+.theme-light-elegant .section-title,
+.theme-light-elegant .table-wrapper strong {
+    color: #111827 !important;
+}
+
+.theme-light-elegant .glass-card,
+.theme-light-elegant .mobile-card,
+.theme-light-elegant .grid-cell,
+.theme-light-elegant .matrix-item {
+    background: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+.theme-light-elegant input,
+.theme-light-elegant select,
+.theme-light-elegant textarea {
+    background: #ffffff !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+}
+
+.theme-light-elegant .nav-btn {
+    color: #4b5563;
+}
+
+.theme-light-elegant .nav-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #111827;
+}
+
+.theme-light-elegant .nav-btn.active {
+    background: #4f46e5;
+    color: #fff;
+}
+
+.theme-light-elegant .phone-screen {
+    background: #f9fafb !important;
+}
+
+.theme-light-elegant .smartphone-web-frame {
+    background: #f3f4f6 !important;
+    border-color: rgba(0,0,0,0.1) !important;
+}
+
+.theme-light-elegant .styled-table th {
+    background: #e5e7eb !important;
+    color: #111827 !important;
+    border-bottom: 2px solid #d1d5db !important;
+}
+
+.theme-light-elegant .styled-table td {
+    color: #374151 !important;
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+.theme-light-elegant .styled-table tbody tr:hover {
+    background-color: #f9fafb !important;
+}
+
+.theme-light-elegant .admin-header {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+.theme-light-elegant .admin-user-strip span {
+    color: #374151 !important;
+}
+
+.theme-light-elegant .torre-config-card {
+    border-color: rgba(79, 70, 229, 0.2) !important;
+    background: #ffffff !important;
+}
+
+.theme-light-elegant .torre-config-card:hover {
+    border-color: rgba(79, 70, 229, 0.5) !important;
+    background: #f9fafb !important;
+}
+
+.theme-light-elegant .torre-config-card input {
+    background: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+}
+
+/* 3. Tema Esmeralda Neon */
+.theme-emerald-neon {
+    --bg-main: #061812;
+    --bg-card: rgba(12, 38, 30, 0.75);
+    --bg-card-hover: rgba(18, 54, 43, 0.9);
+    --border-color: rgba(16, 185, 129, 0.15);
+    --border-focus: rgba(16, 185, 129, 0.6);
+    
+    --primary: #059669;
+    --primary-light: #34d399;
+    --primary-gradient: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    
+    --text-primary: #ecfdf5;
+    --text-secondary: #a7f3d0;
+    --text-muted: #6ee7b7;
+}
+
+.theme-emerald-neon .phone-screen,
+.theme-emerald-neon .smartphone-web-frame {
+    background: #061812 !important;
+}
+
+.theme-emerald-neon .admin-header {
+    background: rgba(6, 24, 18, 0.8) !important;
+}
+
+.theme-emerald-neon .torre-config-card {
+    border-color: rgba(16, 185, 129, 0.25) !important;
+    background: rgba(6, 24, 18, 0.3) !important;
+}
+
+.theme-emerald-neon .torre-config-card:hover {
+    border-color: rgba(16, 185, 129, 0.6) !important;
+    background: rgba(6, 24, 18, 0.5) !important;
+}
+
+/* 4. Tema Vulcão Orange */
+.theme-volcano-orange {
+    --bg-main: #140d0a;
+    --bg-card: rgba(38, 24, 18, 0.75);
+    --bg-card-hover: rgba(54, 34, 25, 0.9);
+    --border-color: rgba(249, 115, 22, 0.15);
+    --border-focus: rgba(249, 115, 22, 0.6);
+    
+    --primary: #ea580c;
+    --primary-light: #fb923c;
+    --primary-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+    
+    --text-primary: #fff7ed;
+    --text-secondary: #fed7aa;
+    --text-muted: #fdba74;
+}
+
+.theme-volcano-orange .phone-screen,
+.theme-volcano-orange .smartphone-web-frame {
+    background: #140d0a !important;
+}
+
+.theme-volcano-orange .admin-header {
+    background: rgba(20, 13, 10, 0.8) !important;
+}
+
+.theme-volcano-orange .torre-config-card {
+    border-color: rgba(249, 115, 22, 0.25) !important;
+    background: rgba(20, 13, 10, 0.3) !important;
+}
+
+.theme-volcano-orange .torre-config-card:hover {
+    border-color: rgba(249, 115, 22, 0.6) !important;
+    background: rgba(20, 13, 10, 0.5) !important;
+}
+

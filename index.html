@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lírios - Gestão de Limpeza Pós-Obra</title>
+    <title>Lírios Limpeza Profissional - Sistema de Gestão</title>
     <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
@@ -11,17 +11,105 @@
 </head>
 <body>
 
-    <div class="app-wrapper">
+    <!-- ==========================================
+       1. PORTAL DE ENTRADA UNIFICADO
+       ========================================== -->
+    <div id="portal-entry-screen" class="portal-entry-screen">
+        <div class="portal-container">
+            <div class="portal-logo">
+                <i class="fa-solid fa-wind"></i> LÍRIOS
+                <div class="portal-sub">Limpeza Profissional</div>
+            </div>
+            
+            <div class="portal-grid">
+                <!-- Card CEO/Administração -->
+                <div class="glass-card portal-card" onclick="selectPortal('admin')">
+                    <div class="portal-card-icon">
+                        <i class="fa-solid fa-building-shield"></i>
+                    </div>
+                    <h3>Painel Administrativo</h3>
+                    <p>Acesso exclusivo para CEO, gerência corporativa e administradores da central.</p>
+                    <span class="portal-action-btn">Acessar Central <i class="fa-solid fa-arrow-right"></i></span>
+                </div>
+
+                <!-- Card Colaborador de Campo -->
+                <div class="glass-card portal-card" onclick="selectPortal('colab')">
+                    <div class="portal-card-icon">
+                        <i class="fa-solid fa-helmet-safety"></i>
+                    </div>
+                    <h3>Aplicativo de Campo</h3>
+                    <p>Espaço para colaboradores registrarem o início, fim e observações das limpezas.</p>
+                    <span class="portal-action-btn">Entrar no App <i class="fa-solid fa-arrow-right"></i></span>
+                </div>
+            </div>
+            
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 40px; text-align: center;">
+                Lírios Gestão de Obras © 2026. Todos os direitos reservados.
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==========================================
+       2. LAYOUT DO PORTAL ADMINISTRATIVO (CEO / ADMIN)
+       ========================================== -->
+    <div id="admin-panel-layout" style="display: none; flex-direction: column; height: 100vh; width: 100vw; overflow: hidden;">
         
-        <!-- LEFT: ADMIN PANEL (Desktop Web View) -->
-        <main class="admin-container">
+        <!-- LOGIN SCREEN FOR ADMIN -->
+        <div id="admin-login-view" class="admin-login-view" style="display: flex; flex: 1; align-items: center; justify-content: center; height: 100%; width: 100%;">
+            <div class="glass-card" style="width: 100%; max-width: 400px; padding: 40px; margin: 20px; text-align: center;">
+                <div class="login-logo" style="margin-top: 0; margin-bottom: 8px; font-size: 36px; font-weight: 800; font-family: 'Outfit', sans-serif; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    <i class="fa-solid fa-wind"></i> LÍRIOS
+                </div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 24px; text-transform: uppercase; letter-spacing: 1px;">
+                    Acesso Administrativo
+                </div>
+                <form id="form-admin-login" onsubmit="event.preventDefault(); handleAdminLogin();">
+                    <div class="form-group" style="text-align: left;">
+                        <label for="admin-username">Usuário / E-mail</label>
+                        <input type="text" id="admin-username" placeholder="Digite seu usuário ou email" required style="width: 100%;">
+                    </div>
+                    <div class="form-group" style="text-align: left; margin-bottom: 24px;">
+                        <label for="admin-password">Senha de Acesso</label>
+                        <input type="password" id="admin-password" placeholder="Digite a senha de administrador" required style="width: 100%;">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                        <button type="button" class="btn-secondary" onclick="backToPortal()" style="flex: 1; font-size: 13px;">Voltar</button>
+                        <button type="submit" class="btn-primary" style="flex: 2; font-size: 13px;">Entrar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ACTUAL ADMIN DESKTOP WORKSPACE (Visible only after successful login) -->
+        <div id="admin-workspace" style="display: none; flex-direction: column; height: 100%; width: 100%;">
             <!-- Header -->
             <header class="admin-header">
-                <div class="logo-container">
+                <div class="logo-container" onclick="backToPortal()" style="cursor: pointer;">
                     <span class="logo-icon"><i class="fa-solid fa-wind"></i></span>
                     <span class="logo-text">LÍRIOS</span>
-                    <span class="admin-title-badge">PAINEL ADMINISTRATIVO</span>
+                    <span class="admin-title-badge" id="admin-role-badge">PAINEL ADMINISTRATIVO</span>
                 </div>
+
+                <!-- Global Project Switcher -->
+                <div class="global-project-selector" style="display: flex; align-items: center; gap: 8px;">
+                    <label for="global-obra-select" style="font-weight: 600; color: var(--primary-light); font-size: 12px; text-transform: uppercase;"><i class="fa-solid fa-building"></i> Obra:</label>
+                    <select id="global-obra-select" onchange="handleGlobalObraChange()" style="background: rgba(255,255,255,0.06); padding: 6px 12px; font-size: 13px; border-radius: 6px; border: 1px solid var(--border-color); font-weight: 500;">
+                        <!-- Options dynamically loaded -->
+                    </select>
+                </div>
+
+                <!-- Global Theme Switcher -->
+                <div class="global-theme-selector" style="display: flex; align-items: center; gap: 8px; margin-left: 10px;">
+                    <label for="admin-theme-select" style="font-weight: 600; color: var(--primary-light); font-size: 12px; text-transform: uppercase;"><i class="fa-solid fa-palette"></i> Tema:</label>
+                    <select id="admin-theme-select" onchange="changeAdminTheme()" style="background: rgba(255,255,255,0.06); padding: 6px 12px; font-size: 13px; border-radius: 6px; border: 1px solid var(--border-color); font-weight: 500; color: #fff;">
+                        <option value="theme-dark-classic">Lírios Dark</option>
+                        <option value="theme-light-elegant">Lírios Light</option>
+                        <option value="theme-emerald-neon">Esmeralda</option>
+                        <option value="theme-volcano-orange">Vulcão</option>
+                    </select>
+                </div>
+
                 <!-- Navigation Tabs -->
                 <nav class="admin-nav">
                     <button class="nav-btn active" onclick="switchAdminTab('dashboard')">
@@ -31,40 +119,60 @@
                         <i class="fa-solid fa-building-user"></i> Cadastro Obras
                     </button>
                     <button class="nav-btn" onclick="switchAdminTab('matriz')">
-                        <i class="fa-solid fa-money-bill-wave"></i> Matriz de Preços
+                        <i class="fa-solid fa-money-bill-wave"></i> Matriz e Serviços
                     </button>
                     <button class="nav-btn" onclick="switchAdminTab('alocacao')">
-                        <i class="fa-solid fa-user-plus"></i> Alocação Rápida
+                        <i class="fa-solid fa-users-gear"></i> Equipe e Alocação
                     </button>
                     <button class="nav-btn" onclick="switchAdminTab('relatorios')">
                         <i class="fa-solid fa-file-invoice-dollar"></i> Conferência
                     </button>
                 </nav>
+
+                <!-- User Profile & Log out -->
+                <div class="admin-user-strip" style="display: flex; align-items: center; gap: 14px;">
+                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                        <span id="admin-logged-name" style="font-size: 13px; font-weight: 600; color: #fff;">CEO</span>
+                        <span style="font-size: 10px; color: var(--text-secondary);">Online</span>
+                    </div>
+                    <button onclick="handleAdminLogout()" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger); cursor: pointer; font-size: 13px; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: var(--transition-fast);" title="Sair do Painel">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </button>
+                </div>
             </header>
 
-            <!-- Content Area -->
+            <!-- Admin Content -->
             <div class="admin-content">
                 
                 <!-- TAB 1: DASHBOARD -->
                 <section id="tab-dashboard" class="tab-pane active">
                     <!-- Metric Cards -->
-                    <div class="metrics-grid">
+                    <div class="metrics-grid" style="grid-template-columns: repeat(4, 1fr);">
                         <div class="glass-card metric-card">
                             <div class="metric-icon emerald">
                                 <i class="fa-solid fa-wallet"></i>
                             </div>
                             <div class="metric-info">
-                                <h4>Faturamento Total</h4>
-                                <div class="metric-value" id="admin-fat-total">R$ 0,00</div>
+                                <h4>Faturamento Realizado</h4>
+                                <div class="metric-value" id="admin-fat-realizado">R$ 0,00</div>
                             </div>
                         </div>
                         <div class="glass-card metric-card">
                             <div class="metric-icon blue">
-                                <i class="fa-solid fa-helmet-safety"></i>
+                                <i class="fa-solid fa-calculator"></i>
                             </div>
                             <div class="metric-info">
-                                <h4>Obras Ativas</h4>
-                                <div class="metric-value" id="admin-obras-total">0</div>
+                                <h4>Faturamento Previsto</h4>
+                                <div class="metric-value" id="admin-fat-previsto">R$ 0,00</div>
+                            </div>
+                        </div>
+                        <div class="glass-card metric-card">
+                            <div class="metric-icon" style="background: rgba(245, 158, 11, 0.15); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.25);">
+                                <i class="fa-solid fa-hourglass-half"></i>
+                            </div>
+                            <div class="metric-info">
+                                <h4>Faturamento Faltante</h4>
+                                <div class="metric-value" id="admin-fat-faltante">R$ 0,00</div>
                             </div>
                         </div>
                         <div class="glass-card metric-card">
@@ -72,60 +180,41 @@
                                 <i class="fa-solid fa-circle-check"></i>
                             </div>
                             <div class="metric-info">
-                                <h4>Unidades Limpas</h4>
-                                <div class="metric-value" id="admin-limpezas-total">0</div>
+                                <h4>Progresso Físico</h4>
+                                <div class="metric-value" id="admin-progresso-fisico" style="font-size: 20px;">0 / 0</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Charts & Recent Activity -->
+                    <!-- Charts & Resumos -->
                     <div class="dashboard-layout">
-                        <!-- Chart Card -->
+                        <!-- Chart Card (Productivity) -->
                         <div class="glass-card">
-                            <div class="section-title">
-                                <i class="fa-solid fa-ranking-star" style="color: var(--primary-light)"></i>
-                                Produtividade do Time (Últimos 30 dias)
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                                <div class="section-title" style="margin-bottom: 0;">
+                                    <i class="fa-solid fa-ranking-star" style="color: var(--primary-light)"></i>
+                                    Produtividade e Média do Time (Últimos 30 dias)
+                                </div>
+                                <!-- Meta Diária Editável inline no Dashboard -->
+                                <div style="display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.2); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                    <label for="admin-meta-prod-input" style="font-size: 11px; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Meta Diária:</label>
+                                    <input type="number" id="admin-meta-prod-input" step="0.5" min="0.5" max="30" value="4.0" onchange="saveMetaProdutividade()" style="width: 60px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); color: #fff; padding: 2px 6px; font-size: 12px; border-radius: 4px; text-align: center;">
+                                    <span style="font-size: 11px; color: var(--text-secondary);">apts/dia</span>
+                                </div>
                             </div>
-                            <!-- Productivity bar list -->
                             <div class="chart-container" id="productivity-chart">
                                 <!-- Rendered dynamically by JS -->
                             </div>
-                            <div class="chart-legend">
-                                <div class="legend-item">
-                                    <div class="legend-dot" style="background: var(--success)"></div>
-                                    <span>Acima/Na Média</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-dot" style="background: var(--warning)"></div>
-                                    <span>Abaixo da Média</span>
-                                </div>
-                            </div>
                         </div>
 
-                        <!-- Faturamento Period Grid -->
-                        <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
-                            <div>
-                                <div class="section-title">
-                                    <i class="fa-solid fa-calendar-days" style="color: var(--primary-light)"></i>
-                                    Faturamento por Período
-                                </div>
-                                <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 10px;">
-                                    <div class="matrix-item">
-                                        <span style="font-weight: 500;"><i class="fa-solid fa-clock"></i> Diário (Hoje)</span>
-                                        <span class="currency-symbol" id="fat-diario" style="color: var(--success); font-size: 16px; font-weight: 700;">R$ 0,00</span>
-                                    </div>
-                                    <div class="matrix-item">
-                                        <span style="font-weight: 500;"><i class="fa-solid fa-calendar-week"></i> Semanal (Últimos 7 dias)</span>
-                                        <span class="currency-symbol" id="fat-semanal" style="color: var(--success); font-size: 16px; font-weight: 700;">R$ 0,00</span>
-                                    </div>
-                                    <div class="matrix-item">
-                                        <span style="font-weight: 500;"><i class="fa-solid fa-calendar-check"></i> Mensal (Mês Atual)</span>
-                                        <span class="currency-symbol" id="fat-mensal" style="color: var(--success); font-size: 16px; font-weight: 700;">R$ 0,00</span>
-                                    </div>
-                                </div>
+                        <!-- Faltantes por Serviço -->
+                        <div class="glass-card" style="display: flex; flex-direction: column;">
+                            <div class="section-title" style="margin-bottom: 16px;">
+                                <i class="fa-solid fa-list-ol" style="color: var(--primary-light)"></i>
+                                Tarefas Faltantes por Serviço
                             </div>
-                            <div style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 10px;">
-                                *Valores baseados nas limpezas confirmadas no aplicativo móvel.
+                            <div style="display: flex; flex-direction: column; gap: 14px;" id="missing-tasks-container">
+                                <!-- Rendered dynamically by JS -->
                             </div>
                         </div>
                     </div>
@@ -133,34 +222,35 @@
 
                 <!-- TAB 2: CADASTRO OBRAS -->
                 <section id="tab-obras" class="tab-pane">
-                    <div class="glass-card">
+                    <div class="glass-card" style="padding: 24px;">
                         <div class="section-title">
-                            <i class="fa-solid fa-circle-plus" style="color: var(--primary-light)"></i>
-                            Cadastrar Nova Obra
+                            <i class="fa-solid fa-sliders" style="color: var(--primary-light)"></i>
+                            Configuração da Estrutura da Obra
                         </div>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
+                            Edite a estrutura física da obra de forma dinâmica. Lembre-se que alterar a estrutura irá zerar os dados de andares removidos.
+                        </p>
+                        
                         <form id="form-criar-obra" onsubmit="event.preventDefault(); adminCreateObra();">
-                            <div class="form-grid">
-                                <div class="form-group full-width">
-                                    <label for="obra-nome">Nome da Empreitada / Condomínio</label>
-                                    <input type="text" id="obra-nome" placeholder="Ex: Residencial Chapada Fontana" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="obra-torres">Quantidade de Torres/Blocos</label>
-                                    <input type="number" id="obra-torres" min="1" max="10" placeholder="Ex: 2" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="obra-pavimentos">Pavimentos por Torre</label>
-                                    <input type="number" id="obra-pavimentos" min="1" max="50" placeholder="Ex: 10" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="obra-apts">Apartamentos por Andar</label>
-                                    <input type="number" id="obra-apts" min="1" max="20" placeholder="Ex: 8" required>
-                                </div>
-                                <div class="form-group" style="display: flex; justify-content: flex-end; align-items: flex-end; grid-column: span 1;">
-                                    <button type="submit" class="btn-primary" style="width: 100%;">
-                                        <i class="fa-solid fa-hammer"></i> Criar Obra e Gerar Unidades
-                                    </button>
-                                </div>
+                            <!-- Nome da Obra -->
+                            <div class="form-group" style="max-width: 450px; margin-bottom: 24px;">
+                                <label for="obra-nome" style="font-weight: 600; color: #fff;">Nome do Empreendimento / Obra</label>
+                                <input type="text" id="obra-nome" placeholder="Ex: Residencial Chapada Fontana" required style="width: 100%; margin-top: 4px;">
+                            </div>
+
+                            <!-- Horizontal Cards Grid for Towers -->
+                            <div id="torres-cards-container" style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; width: 100%;">
+                                 <!-- Dynamic tower cards generated here by JS -->
+                            </div>
+
+                            <!-- Footer actions row -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 16px; margin-top: 10px;">
+                                <button type="button" class="btn-secondary" onclick="addNewTorreCard()" style="border: 1px dashed var(--primary-light); background: rgba(99, 102, 241, 0.05); color: #fff; padding: 12px 20px; font-weight: 600; font-size: 13px; border-radius: 8px;">
+                                    <i class="fa-solid fa-plus"></i> Adicionar Nova Torre
+                                </button>
+                                <button type="submit" class="btn-primary" style="background: #eab308; color: #000; box-shadow: 0 4px 14px rgba(234, 179, 8, 0.2); padding: 12px 24px; font-weight: 700; font-size: 13px; border-radius: 8px; border: none;">
+                                    <i class="fa-solid fa-floppy-disk"></i> Salvar Estrutura
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -189,64 +279,151 @@
                     </div>
                 </section>
 
-                <!-- TAB 3: MATRIZ DE PREÇOS -->
+                <!-- TAB 4: MATRIZ E SERVIÇOS -->
                 <section id="tab-matriz" class="tab-pane">
-                    <div class="glass-card">
-                        <div class="section-title">
-                            <i class="fa-solid fa-sliders" style="color: var(--primary-light)"></i>
-                            Configurar Valores por Tipo de Limpeza
-                        </div>
-                        <div class="form-group" style="max-width: 300px; margin-bottom: 24px;">
-                            <label for="matriz-obra-select">Selecionar Obra</label>
-                            <select id="matriz-obra-select" onchange="renderMatrixEditor()">
-                                <!-- Options dynamically loaded -->
-                            </select>
-                        </div>
-
-                        <div class="matrix-grid" id="matrix-inputs-container">
-                            <!-- Matrix fields loaded by JS -->
-                        </div>
-
-                        <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
-                            <button class="btn-primary" onclick="adminSaveMatrix()">
-                                <i class="fa-solid fa-floppy-disk"></i> Salvar Matriz de Valores
-                            </button>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- TAB 4: ALOCAÇÃO RÁPIDA -->
-                <section id="tab-alocacao" class="tab-pane">
-                    <div class="glass-card">
-                        <div class="section-title">
-                            <i class="fa-solid fa-people-arrows" style="color: var(--primary-light)"></i>
-                            Vincular Colaborador à Obra
-                        </div>
-                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 24px;">
-                            Selecione uma obra para ver e gerenciar os funcionários autorizados a trabalhar nela.
-                        </p>
+                    <div class="dashboard-layout" style="grid-template-columns: 1fr 1.5fr;">
                         
-                        <div class="form-group" style="max-width: 300px; margin-bottom: 24px;">
-                            <label for="alocacao-obra-select">Selecionar Obra</label>
-                            <select id="alocacao-obra-select" onchange="renderAllocationGrid()">
-                                <!-- Options dynamic -->
-                            </select>
+                        <!-- Painel de Gerenciamento de Serviços de Limpeza -->
+                        <div class="glass-card">
+                            <div class="section-title">
+                                <i class="fa-solid fa-gears" style="color: var(--primary-light)"></i>
+                                Serviços de Limpeza Ativos
+                            </div>
+                            <form id="form-criar-servico" onsubmit="event.preventDefault(); adminCreateService();" style="margin-bottom: 24px;">
+                                <div class="form-group">
+                                    <label for="srv-nome">Nome do Novo Serviço</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="text" id="srv-nome" placeholder="Ex: Lavagem de Garagem" required style="flex: 1;">
+                                        <button type="submit" class="btn-primary" style="padding: 10px 14px;"><i class="fa-solid fa-plus"></i></button>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <div style="margin-bottom: 12px; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Lista de Serviços:</div>
+                            <div style="display: flex; flex-direction: column; gap: 10px;" id="admin-services-list">
+                                <!-- Dynamic JS list of active services with delete button -->
+                            </div>
                         </div>
 
-                        <div style="margin-bottom: 20px; font-weight: 600; font-size: 14px;">Colaboradores do Canteiro:</div>
-                        <div style="display: flex; flex-direction: column; gap: 12px;" id="allocation-employees-list">
-                            <!-- Checkboxes dynamic -->
-                        </div>
+                        <!-- Edição de Valores por Obra -->
+                        <div class="glass-card">
+                            <div class="section-title">
+                                <i class="fa-solid fa-sliders" style="color: var(--primary-light)"></i>
+                                Configurar Tabela de Preços da Obra
+                            </div>
+                            <div class="form-group" style="max-width: 300px; margin-bottom: 24px;">
+                                <label for="matriz-obra-select">Selecionar Obra</label>
+                                <select id="matriz-obra-select" onchange="renderMatrixEditor()">
+                                    <!-- Options dynamic -->
+                                </select>
+                            </div>
 
-                        <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
-                            <button class="btn-primary" onclick="adminSaveAllocations()">
-                                <i class="fa-solid fa-circle-check"></i> Salvar Alocações
-                            </button>
+                            <div class="matrix-grid" id="matrix-inputs-container">
+                                <!-- Matrix fields loaded by JS -->
+                            </div>
+
+                            <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
+                                <button class="btn-primary" onclick="adminSaveMatrix()">
+                                    <i class="fa-solid fa-floppy-disk"></i> Salvar Preços dos Serviços
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <!-- TAB 5: RELATÓRIO DE CONFERÊNCIA -->
+                <!-- TAB 5: EQUIPE E ALOCACAO (Abas fundidas em uma coluna dupla) -->
+                <section id="tab-alocacao" class="tab-pane">
+                    <div class="dashboard-layout" style="grid-template-columns: 1fr 1.2fr; gap: 24px;">
+                        
+                        <!-- Coluna Esquerda: Gerenciamento da Equipe (CRUD) -->
+                        <div style="display: flex; flex-direction: column; gap: 24px;">
+                            <!-- Formulário Novo Membro -->
+                            <div class="glass-card" style="margin-bottom: 0;">
+                                <div class="section-title">
+                                    <i class="fa-solid fa-user-plus" style="color: var(--primary-light)"></i>
+                                    Adicionar Membro da Equipe
+                                </div>
+                                <form id="form-criar-colaborador" onsubmit="event.preventDefault(); adminCreateUser();">
+                                    <div class="form-group">
+                                        <label for="usr-nome">Nome Completo</label>
+                                        <input type="text" id="usr-nome" placeholder="Ex: Carlos Albuquerque" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="usr-email">E-mail (Login)</label>
+                                        <input type="email" id="usr-email" placeholder="Ex: carlos@lirios.com.br" required style="text-transform: lowercase;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="usr-senha">Senha do Funcionário</label>
+                                        <input type="password" id="usr-senha" placeholder="Senha do aplicativo" required style="background: rgba(255,255,255,0.06); padding: 10px; font-size: 13px; color: #fff;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="usr-perfil">Função/Perfil</label>
+                                        <select id="usr-perfil" style="background: rgba(255,255,255,0.06); color: #fff;">
+                                            <option value="COLABORADOR">Colaborador de Campo</option>
+                                            <option value="ADMIN">Administrador</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">
+                                        <i class="fa-solid fa-user-check"></i> Cadastrar Membro
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Lista de Membros Cadastrados -->
+                            <div class="glass-card" style="margin-bottom: 0;">
+                                <div class="section-title">
+                                    <i class="fa-solid fa-people-group" style="color: var(--primary-light)"></i>
+                                    Membros Cadastrados
+                                </div>
+                                <div class="table-wrapper" style="max-height: 250px; overflow-y: auto;">
+                                    <table class="styled-table" id="table-equipe-list">
+                                        <thead>
+                                            <tr>
+                                                <th>Nome</th>
+                                                <th>E-mail</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dynamic JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coluna Direita: Vinculo de Equipe à Obra (Alocações) -->
+                        <div class="glass-card" style="height: fit-content; margin-bottom: 0;">
+                            <div class="section-title">
+                                <i class="fa-solid fa-people-arrows" style="color: var(--primary-light)"></i>
+                                Vincular Equipe à Obra Ativa
+                            </div>
+                            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 24px;">
+                                Selecione a obra e gerencie quais colaboradores estão autorizados a trabalhar nela.
+                            </p>
+                            
+                            <div class="form-group" style="max-width: 320px; margin-bottom: 24px;">
+                                <label for="alocacao-obra-select">Selecionar Obra</label>
+                                <select id="alocacao-obra-select" onchange="renderAllocationGrid()">
+                                    <!-- Options dynamic -->
+                                </select>
+                            </div>
+
+                            <div style="margin-bottom: 16px; font-weight: 600; font-size: 13px; color: #fff;"><i class="fa-solid fa-users"></i> Funcionários Alocados no Canteiro:</div>
+                            <div style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 8px;" id="allocation-employees-list">
+                                <!-- Checkboxes dynamic -->
+                            </div>
+
+                            <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
+                                <button class="btn-primary" onclick="adminSaveAllocations()">
+                                    <i class="fa-solid fa-circle-check"></i> Salvar Alocações
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 6: RELATÓRIO DE CONFERÊNCIA -->
                 <section id="tab-relatorios" class="tab-pane">
                     <div class="glass-card">
                         <div class="section-title">
@@ -277,10 +454,11 @@
                             <table class="styled-table" id="table-audit-report">
                                 <thead>
                                     <tr>
-                                        <th>Data/Hora</th>
+                                        <th>Início / Fim</th>
                                         <th>Obra / Local</th>
                                         <th>Funcionário</th>
                                         <th>Tipo Serviço</th>
+                                        <th>Observações de Campo</th>
                                         <th style="text-align: right;">Valor Gerado</th>
                                     </tr>
                                 </thead>
@@ -291,134 +469,182 @@
                         </div>
                     </div>
                 </section>
-
             </div>
-        </main>
+        </div>
+    </div>
 
-        <!-- RIGHT: MOBILE SIMULATOR (Colaborador App) -->
-        <aside class="mobile-simulator-container">
-            <div class="smartphone-frame">
-                <!-- Speaker and Notch -->
-                <div class="phone-notch">
-                    <div class="phone-speaker"></div>
-                    <div class="phone-camera"></div>
-                </div>
 
-                <!-- Status Bar -->
-                <div class="phone-status-bar">
-                    <span id="phone-clock">12:00</span>
-                    <div class="status-icons">
-                        <i class="fa-solid fa-wifi"></i>
-                        <i class="fa-solid fa-battery-three-quarters"></i>
+    <!-- ==========================================
+       3. LAYOUT DO COLABORADOR (APLICATIVO DE CAMPO)
+       ========================================== -->
+    <div id="colab-panel-layout" style="display: none; justify-content: center; align-items: center; height: 100vh; width: 100vw; background: var(--bg-main);">
+        
+        <div class="smartphone-web-frame">
+            <!-- Screen Area -->
+            <div class="phone-screen" id="phone-screen-root" style="padding-top: 10px;">
+                
+                <!-- SCREEN 1: LOGIN MOBILE -->
+                <div id="m-screen-login" class="mobile-view active" style="display: flex;">
+                    <div class="login-logo" style="margin-top: 30px;">
+                        <i class="fa-solid fa-wind"></i> Lírios
+                    </div>
+                    <div style="font-size: 13px; text-align: center; color: var(--text-secondary); margin-bottom: 24px;">
+                        Aplicativo de Campo - Colaboradores
+                    </div>
+                    <div class="form-group">
+                        <label for="mobile-user-select">Selecione seu Nome</label>
+                        <select id="mobile-user-select" style="background: rgba(255,255,255,0.06); padding: 12px; font-size: 14px; width: 100%;">
+                            <!-- Dynamic options for workers -->
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 24px;">
+                        <label for="mobile-user-pass">Senha de Acesso</label>
+                        <input type="password" id="mobile-user-pass" placeholder="Digite sua senha cadastrada" required style="background: rgba(255,255,255,0.06); padding: 12px; font-size: 14px; width: 100%; color: #fff;">
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-top: 10px; margin-bottom: 20px;">
+                        <button class="btn-secondary" onclick="backToPortal()" style="flex: 1; padding: 12px;">Voltar</button>
+                        <button class="btn-mobile-primary" onclick="mobileLogin()" style="flex: 2;">Entrar <i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+
+                    <!-- Theme Switcher for Mobile -->
+                    <div style="margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 8px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.04);">
+                        <label for="mobile-theme-select" style="font-size: 11px; color: var(--text-secondary);"><i class="fa-solid fa-palette"></i> Tema do App:</label>
+                        <select id="mobile-theme-select" onchange="changeMobileTheme()" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); padding: 4px 8px; font-size: 11px; color: #fff; border-radius: 6px; outline: none; cursor: pointer;">
+                            <option value="theme-dark-classic">Lírios Dark</option>
+                            <option value="theme-light-elegant">Lírios Light</option>
+                            <option value="theme-emerald-neon">Esmeralda</option>
+                            <option value="theme-volcano-orange">Vulcão</option>
+                        </select>
                     </div>
                 </div>
 
-                <!-- Inner Screen Container -->
-                <div class="phone-screen" id="phone-screen-root">
+                <!-- SCREEN 2: OBRA ACTIVA SELECTOR -->
+                <div id="m-screen-obras" class="mobile-view" style="display: none;">
+                    <div class="mobile-header">
+                        <div class="mobile-title">Obras Alocadas</div>
+                        <div class="mobile-subtitle">Selecione para ver o canteiro</div>
+                    </div>
+                    <div class="mobile-card-list" id="mobile-obras-list">
+                        <!-- Loaded by JS -->
+                    </div>
+                </div>
+
+                <!-- SCREEN 3: TORRES LIST -->
+                <div id="m-screen-torres" class="mobile-view" style="display: none;">
+                    <div class="mobile-header">
+                        <button class="btn-back" onclick="mobileBackToObras()"><i class="fa-solid fa-chevron-left"></i></button>
+                        <div class="mobile-title" id="mobile-torres-title">Obra Selecionada</div>
+                        <div class="mobile-subtitle">Selecione a torre de limpeza</div>
+                    </div>
+                    <div class="mobile-card-list" id="mobile-torres-list">
+                        <!-- Dynamic -->
+                    </div>
+                </div>
+
+                <!-- SCREEN 4: PAVIMENTOS LIST -->
+                <div id="m-screen-pavimentos" class="mobile-view" style="display: none;">
+                    <div class="mobile-header">
+                        <button class="btn-back" onclick="mobileBackToTorres()"><i class="fa-solid fa-chevron-left"></i></button>
+                        <div class="mobile-title" id="mobile-pavimentos-title">Torre 1</div>
+                        <div class="mobile-subtitle" id="mobile-pavimentos-title-desc">Selecione o andar/pavimento</div>
+                    </div>
+                    <div class="mobile-card-list" id="mobile-pavimentos-list">
+                        <!-- Dynamic -->
+                    </div>
+                </div>
+
+                <!-- SCREEN 5: UNIDADES GRID -->
+                <div id="m-screen-unidades" class="mobile-view" style="display: none;">
+                    <div class="mobile-header">
+                        <button class="btn-back" onclick="mobileBackToPavimentos()"><i class="fa-solid fa-chevron-left"></i></button>
+                        <div class="mobile-title" id="mobile-unidades-title">1º Andar</div>
+                        <div class="mobile-subtitle">Selecione a unidade física</div>
+                    </div>
+                    <!-- Units Render Grid -->
+                    <div class="mobile-grid" id="mobile-unidades-grid">
+                        <!-- Dynamic -->
+                    </div>
+                </div>
+
+                <!-- SCREEN 6: CHECKLIST DETALHE -->
+                <div id="m-screen-detalhe" class="mobile-view" style="display: none; flex-direction: column; height: 100%; overflow-y: auto;">
+                    <div class="mobile-header" style="margin-bottom: 16px;">
+                        <button class="btn-back" onclick="mobileBackToUnidades()"><i class="fa-solid fa-chevron-left"></i></button>
+                        <div class="mobile-title" id="mobile-detalhe-title">Apto 101</div>
+                        <div class="mobile-subtitle" id="mobile-detalhe-subtitle">Torre 1 - 1º Andar</div>
+                    </div>
                     
-                    <!-- SCREEN 1: LOGIN MOBILE -->
-                    <div id="m-screen-login" class="mobile-view active">
-                        <div class="login-logo">
-                            <i class="fa-solid fa-wind"></i> Lírios
-                        </div>
-                        <div style="font-size: 13px; text-align: center; color: var(--text-secondary); margin-bottom: 24px;">
-                            Acesso exclusivo para colaboradores de campo.
-                        </div>
+                    <!-- Painel de Seleção de Serviço e Ações -->
+                    <div class="glass-card" style="background: rgba(255, 255, 255, 0.04); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
                         <div class="form-group">
-                            <label>Selecione seu Nome</label>
-                            <select id="mobile-user-select" style="background: rgba(255,255,255,0.06); padding: 12px; font-size: 14px;">
-                                <!-- Dynamic options for workers -->
+                            <label for="mobile-service-select" style="color: var(--primary-light); font-weight: 600; font-size: 11px; text-transform: uppercase;">Serviço Realizado</label>
+                            <select id="mobile-service-select" onchange="handleMobileServiceSelectChange()" style="background: rgba(0,0,0,0.2); padding: 10px; font-size: 13px; width: 100%; margin-top: 4px;">
+                                <!-- Dynamic services loaded by JS -->
                             </select>
                         </div>
-                        <div class="form-group" style="margin-bottom: 24px;">
-                            <label>Senha de Campo</label>
-                            <input type="password" value="123456" disabled style="background: rgba(255,255,255,0.03); color: var(--text-muted);">
-                            <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">*A senha está pré-preenchida para o teste.</span>
-                        </div>
-                        <button class="btn-mobile-primary" onclick="mobileLogin()">
-                            <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar no App
-                        </button>
-                    </div>
-
-                    <!-- SCREEN 2: OBRA ACTIVA SELECTOR -->
-                    <div id="m-screen-obras" class="mobile-view">
-                        <div class="mobile-header">
-                            <div class="mobile-title">Obras Alocadas</div>
-                            <div class="mobile-subtitle">Selecione para ver o canteiro</div>
-                        </div>
-                        <div class="mobile-card-list" id="mobile-obras-list">
-                            <!-- Loaded by JS -->
-                        </div>
-                    </div>
-
-                    <!-- SCREEN 3: TORRES LIST -->
-                    <div id="m-screen-torres" class="mobile-view">
-                        <div class="mobile-header">
-                            <button class="btn-back" onclick="mobileBackToObras()"><i class="fa-solid fa-chevron-left"></i></button>
-                            <div class="mobile-title" id="mobile-torres-title">Obra Selecionada</div>
-                            <div class="mobile-subtitle">Selecione a torre de limpeza</div>
-                        </div>
-                        <div class="mobile-card-list" id="mobile-torres-list">
-                            <!-- Dynamic -->
-                        </div>
-                    </div>
-
-                    <!-- SCREEN 4: PAVIMENTOS LIST -->
-                    <div id="m-screen-pavimentos" class="mobile-view">
-                        <div class="mobile-header">
-                            <button class="btn-back" onclick="mobileBackToTorres()"><i class="fa-solid fa-chevron-left"></i></button>
-                            <div class="mobile-title" id="mobile-pavimentos-title">Torre 1</div>
-                            <div class="mobile-subtitle">Selecione o andar/pavimento</div>
-                        </div>
-                        <div class="mobile-card-list" id="mobile-pavimentos-list">
-                            <!-- Dynamic -->
-                        </div>
-                    </div>
-
-                    <!-- SCREEN 5: UNIDADES GRID -->
-                    <div id="m-screen-unidades" class="mobile-view">
-                        <div class="mobile-header">
-                            <button class="btn-back" onclick="mobileBackToPavimentos()"><i class="fa-solid fa-chevron-left"></i></button>
-                            <div class="mobile-title" id="mobile-unidades-title">1º Andar</div>
-                            <div class="mobile-subtitle">Selecione a unidade física</div>
-                        </div>
-                        <!-- Units Render Grid -->
-                        <div class="mobile-grid" id="mobile-unidades-grid">
-                            <!-- Dynamic -->
-                        </div>
-                    </div>
-
-                    <!-- SCREEN 6: CHECKLIST DETALHE -->
-                    <div id="m-screen-detalhe" class="mobile-view">
-                        <div class="mobile-header">
-                            <button class="btn-back" onclick="mobileBackToUnidades()"><i class="fa-solid fa-chevron-left"></i></button>
-                            <div class="mobile-title" id="mobile-detalhe-title">Apto 101</div>
-                            <div class="mobile-subtitle" id="mobile-detalhe-subtitle">Torre 1 - 1º Andar</div>
+                        
+                        <!-- Caixa de Status e Timestamps do Serviço -->
+                        <div id="mobile-service-status-box" style="margin-top: 10px; margin-bottom: 12px; padding: 10px; border-radius: 8px; font-size: 11px; font-weight: 500; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color);">
+                            <!-- Carregado dinamicamente -->
                         </div>
                         
-                        <div class="mobile-card-list" id="mobile-checklist-cards">
-                            <!-- Checklist items (Grossa, Fina, Passada) with individual save actions -->
+                        <!-- Caixa de Observações e Impedimentos -->
+                        <div id="mobile-obs-section" style="display: none; margin-bottom: 12px;">
+                            <label for="mobile-obs-text" style="font-size: 11px; font-weight: 500; color: var(--text-secondary);">Observações do Canteiro</label>
+                            <textarea id="mobile-obs-text" placeholder="Ex: Vidros com muita argamassa..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 10px; font-size: 12px; color: #fff; resize: none; height: 60px; margin-top: 4px; outline: none;"></textarea>
+                            
+                            <!-- Atalhos rápidos para o colaborador de luva -->
+                            <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+                                <button type="button" class="btn-secondary" onclick="appendMobileObs('Faltou água')" style="font-size: 10px; padding: 4px 8px; border-radius: 4px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #FCA5A5;">
+                                    + Faltou Água
+                                </button>
+                                <button type="button" class="btn-secondary" onclick="appendMobileObs('Faltou material')" style="font-size: 10px; padding: 4px 8px; border-radius: 4px; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.2); color: #FDE047;">
+                                    + Faltou Material
+                                </button>
+                                <button type="button" class="btn-secondary" onclick="appendMobileObs('Sem energia')" style="font-size: 10px; padding: 4px 8px; border-radius: 4px; background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.2); color: #C7D2FE;">
+                                    + Sem Energia
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Botões de Ação do Colaborador (Iniciar / Concluir) -->
+                        <div id="mobile-action-buttons-container" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                            <!-- Carregado dinamicamente -->
                         </div>
                     </div>
 
-                    <!-- Toast Notification inside simulated phone -->
-                    <div id="mobile-toast" class="mobile-toast">
-                        <i class="fa-solid fa-circle-check"></i> <span id="mobile-toast-text">Salvo com sucesso!</span>
+                    <!-- Histórico Geral da Unidade -->
+                    <div style="font-weight: 600; font-size: 12px; color: #fff; margin-bottom: 8px;">Serviços Concluídos nesta Unidade:</div>
+                    <div class="mobile-card-list" id="mobile-unit-history-list" style="flex: 1; max-height: 200px; overflow-y: auto;">
+                        <!-- Preenchido dinamicamente por JS -->
                     </div>
-
-                    <!-- Logged worker footer status strip -->
-                    <div id="mobile-footer" class="user-status-strip" style="display: none; margin-top: auto;">
-                        <div>
-                            <span class="status-dot-active"></span>
-                            <span id="mobile-footer-username">Colaborador</span>
-                        </div>
-                        <button class="btn-logout" onclick="mobileLogout()">Sair <i class="fa-solid fa-arrow-right-from-bracket"></i></button>
-                    </div>
-
                 </div>
-            </div>
-        </aside>
 
+                <!-- Toast Notification inside simulated phone -->
+                <div id="mobile-toast" class="mobile-toast">
+                    <i class="fa-solid fa-circle-check"></i> <span id="mobile-toast-text">Salvo com sucesso!</span>
+                </div>
+
+                <!-- Logged worker footer status strip -->
+                <div id="mobile-footer" class="user-status-strip" style="display: none; margin-top: auto; justify-content: space-between; gap: 8px; padding: 0 10px;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span class="status-dot-active"></span>
+                        <span id="mobile-footer-username" style="font-size: 10px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Colaborador</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <select id="mobile-theme-select-footer" onchange="changeMobileThemeFooter()" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); padding: 3px 6px; font-size: 9px; color: #fff; border-radius: 4px; outline: none; cursor: pointer;">
+                            <option value="theme-dark-classic">Dark</option>
+                            <option value="theme-light-elegant">Light</option>
+                            <option value="theme-emerald-neon">Verde</option>
+                            <option value="theme-volcano-orange">Vulcão</option>
+                        </select>
+                    </div>
+                    <button class="btn-logout" onclick="mobileLogout()" style="font-size: 10px;">Sair <i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+                </div>
+
+            </div>
+        </div>
     </div>
 
     <!-- Script Application Logic -->
