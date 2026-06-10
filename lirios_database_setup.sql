@@ -20,7 +20,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nome VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
+    username VARCHAR(100) UNIQUE NOT NULL,
     senha_hash VARCHAR(255) NOT NULL,
     perfil VARCHAR(20) CHECK (perfil IN ('CEO', 'ADMIN', 'COLABORADOR')),
     ativo BOOLEAN DEFAULT TRUE,
@@ -136,11 +136,11 @@ EXECUTE FUNCTION gerar_unidades_obra();
 -- ==========================================================
 
 -- Inserir equipe administrativa e colaboradores
-INSERT INTO users (nome, email, senha_hash, perfil) VALUES
+INSERT INTO users (nome, username, senha_hash, perfil) VALUES
 ('Michele Santos', 'michelesantos', 'senha_ceo_hash', 'CEO'),
-('Ana Admin', 'admin@lirios.com.br', 'senha_admin_hash', 'ADMIN'),
-('Carlos Limpeza', 'carlos@lirios.com.br', 'senha_carlos_hash', 'COLABORADOR'),
-('José Roberto', 'jose@lirios.com.br', 'senha_jose_hash', 'COLABORADOR');
+('Ana Admin', 'admin', 'senha_admin_hash', 'ADMIN'),
+('Carlos Limpeza', 'carlos', 'senha_carlos_hash', 'COLABORADOR'),
+('José Roberto', 'jose', 'senha_jose_hash', 'COLABORADOR');
 
 -- Inserir uma Obra (2 Torres, 4 Andares, 4 Aptos e 1 Hall por andar)
 -- Isso vai disparar o trigger e gerar: 2 * 4 * (4 aptos + 1 hall) = 40 unidades físicas automaticamente!
@@ -168,18 +168,18 @@ SELECT o.id, u.id FROM obras o, users u WHERE u.perfil = 'COLABORADOR';
 INSERT INTO limpezas_concluidas (unidade_id, usuario_id, tipo_limpeza, data_inicio, data_conclusao, valor_gerado, observacao_canteiro)
 SELECT uni.id, usr.id, 'GROSSA', NOW() - INTERVAL '2 hours', NOW() - INTERVAL '1 hour', 120.00, 'Concluído'
 FROM unidades uni, users usr
-WHERE uni.unidade_nome = 'Apto 101' AND uni.torre = 'Torre 1' AND usr.email = 'carlos@lirios.com.br'
+WHERE uni.unidade_nome = 'Apto 101' AND uni.torre = 'Torre 1' AND usr.username = 'carlos'
 LIMIT 1;
 
 INSERT INTO limpezas_concluidas (unidade_id, usuario_id, tipo_limpeza, data_inicio, data_conclusao, valor_gerado, observacao_canteiro)
 SELECT uni.id, usr.id, 'FINA', NOW() - INTERVAL '45 minutes', NOW() - INTERVAL '10 minutes', 180.00, 'Faltou material para concluir metais'
 FROM unidades uni, users usr
-WHERE uni.unidade_nome = 'Apto 101' AND uni.torre = 'Torre 1' AND usr.email = 'carlos@lirios.com.br'
+WHERE uni.unidade_nome = 'Apto 101' AND uni.torre = 'Torre 1' AND usr.username = 'carlos'
 LIMIT 1;
 
 -- José iniciou a Limpeza Pesada no Apto 102 da Torre 1, mas ela está "Em Andamento"
 INSERT INTO limpezas_concluidas (unidade_id, usuario_id, tipo_limpeza, data_inicio, data_conclusao, valor_gerado, observacao_canteiro)
 SELECT uni.id, usr.id, 'PESADA', NOW() - INTERVAL '30 minutes', NULL, 0.00, 'Em andamento'
 FROM unidades uni, users usr
-WHERE uni.unidade_nome = 'Apto 102' AND uni.torre = 'Torre 1' AND usr.email = 'jose@lirios.com.br'
+WHERE uni.unidade_nome = 'Apto 102' AND uni.torre = 'Torre 1' AND usr.username = 'jose'
 LIMIT 1;

@@ -147,14 +147,23 @@
                 <!-- TAB 1: DASHBOARD -->
                 <section id="tab-dashboard" class="tab-pane active">
                     <!-- Metric Cards -->
-                    <div class="metrics-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="metrics-grid" style="grid-template-columns: repeat(5, 1fr);">
+                        <div class="glass-card metric-card">
+                            <div class="metric-icon emerald" style="background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.25);">
+                                <i class="fa-solid fa-calendar-day"></i>
+                            </div>
+                            <div class="metric-info">
+                                <h4>Faturamento Diário (Hoje)</h4>
+                                <div class="metric-value" id="admin-fat-diario" style="font-size: 18px;">R$ 0,00</div>
+                            </div>
+                        </div>
                         <div class="glass-card metric-card">
                             <div class="metric-icon emerald">
                                 <i class="fa-solid fa-wallet"></i>
                             </div>
                             <div class="metric-info">
-                                <h4>Faturamento Realizado</h4>
-                                <div class="metric-value" id="admin-fat-realizado">R$ 0,00</div>
+                                <h4>Faturamento Realizado Total</h4>
+                                <div class="metric-value" id="admin-fat-realizado" style="font-size: 18px;">R$ 0,00</div>
                             </div>
                         </div>
                         <div class="glass-card metric-card">
@@ -163,7 +172,7 @@
                             </div>
                             <div class="metric-info">
                                 <h4>Faturamento Previsto</h4>
-                                <div class="metric-value" id="admin-fat-previsto">R$ 0,00</div>
+                                <div class="metric-value" id="admin-fat-previsto" style="font-size: 18px;">R$ 0,00</div>
                             </div>
                         </div>
                         <div class="glass-card metric-card">
@@ -172,7 +181,7 @@
                             </div>
                             <div class="metric-info">
                                 <h4>Faturamento Faltante</h4>
-                                <div class="metric-value" id="admin-fat-faltante">R$ 0,00</div>
+                                <div class="metric-value" id="admin-fat-faltante" style="font-size: 18px;">R$ 0,00</div>
                             </div>
                         </div>
                         <div class="glass-card metric-card">
@@ -181,7 +190,7 @@
                             </div>
                             <div class="metric-info">
                                 <h4>Progresso Físico</h4>
-                                <div class="metric-value" id="admin-progresso-fisico" style="font-size: 20px;">0 / 0</div>
+                                <div class="metric-value" id="admin-progresso-fisico" style="font-size: 18px;">0 / 0</div>
                             </div>
                         </div>
                     </div>
@@ -339,7 +348,7 @@
                         <div style="display: flex; flex-direction: column; gap: 24px;">
                             <!-- Formulário Novo Membro -->
                             <div class="glass-card" style="margin-bottom: 0;">
-                                <div class="section-title">
+                                <div class="section-title" id="form-colaborador-titulo">
                                     <i class="fa-solid fa-user-plus" style="color: var(--primary-light)"></i>
                                     Adicionar Membro da Equipe
                                 </div>
@@ -349,8 +358,8 @@
                                         <input type="text" id="usr-nome" placeholder="Ex: Carlos Albuquerque" required>
                                     </div>
                                     <div class="form-group">
-                                        <label for="usr-email">E-mail (Login)</label>
-                                        <input type="email" id="usr-email" placeholder="Ex: carlos@lirios.com.br" required style="text-transform: lowercase;">
+                                        <label for="usr-username">Usuário de Login</label>
+                                        <input type="text" id="usr-username" placeholder="Ex: carlos.limpeza" required style="text-transform: lowercase;">
                                     </div>
                                     <div class="form-group">
                                         <label for="usr-senha">Senha do Funcionário</label>
@@ -363,9 +372,14 @@
                                             <option value="ADMIN">Administrador</option>
                                         </select>
                                     </div>
-                                    <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">
-                                        <i class="fa-solid fa-user-check"></i> Cadastrar Membro
-                                    </button>
+                                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                                        <button type="button" id="btn-cancelar-edicao" class="btn-secondary" onclick="adminCancelEdit()" style="display: none; flex: 1;">
+                                            Cancelar
+                                        </button>
+                                        <button type="submit" id="btn-salvar-colaborador" class="btn-primary" style="flex: 2; width: 100%;">
+                                            <i class="fa-solid fa-user-check"></i> Cadastrar Membro
+                                        </button>
+                                    </div>
                                 </form>
                             </div>
 
@@ -380,7 +394,8 @@
                                         <thead>
                                             <tr>
                                                 <th>Nome</th>
-                                                <th>E-mail</th>
+                                                <th>Usuário</th>
+                                                <th>Senha</th>
                                                 <th>Ações</th>
                                             </tr>
                                         </thead>
@@ -621,6 +636,29 @@
                     </div>
                 </div>
 
+                <!-- SCREEN 7: ALTERAR SENHA MOBILE -->
+                <div id="m-screen-senha" class="mobile-view" style="display: none; flex-direction: column; padding: 20px;">
+                    <div class="mobile-header" style="margin-bottom: 24px;">
+                        <button class="btn-back" onclick="mobileBackFromSenha()"><i class="fa-solid fa-chevron-left"></i></button>
+                        <div class="mobile-title">Alterar Senha</div>
+                        <div class="mobile-subtitle">Atualize sua senha de acesso</div>
+                    </div>
+                    
+                    <form id="form-mobile-senha" onsubmit="event.preventDefault(); mobileUpdatePassword();">
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label for="mobile-senha-atual">Senha Atual</label>
+                            <input type="password" id="mobile-senha-atual" placeholder="Senha atual" required style="background: rgba(255,255,255,0.06); padding: 12px; font-size: 14px; width: 100%; color: #fff;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 24px;">
+                            <label for="mobile-senha-nova">Nova Senha</label>
+                            <input type="password" id="mobile-senha-nova" placeholder="Nova senha (mín. 3 letras)" required style="background: rgba(255,255,255,0.06); padding: 12px; font-size: 14px; width: 100%; color: #fff;">
+                        </div>
+                        <button type="submit" class="btn-mobile-primary">
+                            <i class="fa-solid fa-key"></i> Salvar Nova Senha
+                        </button>
+                    </form>
+                </div>
+
                 <!-- Toast Notification inside simulated phone -->
                 <div id="mobile-toast" class="mobile-toast">
                     <i class="fa-solid fa-circle-check"></i> <span id="mobile-toast-text">Salvo com sucesso!</span>
@@ -631,6 +669,9 @@
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <span class="status-dot-active"></span>
                         <span id="mobile-footer-username" style="font-size: 10px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Colaborador</span>
+                        <button onclick="mobileOpenChangePassword()" style="background: transparent; border: none; color: var(--warning); cursor: pointer; font-size: 10px; padding: 2px; display: flex; align-items: center;" title="Alterar Senha">
+                            <i class="fa-solid fa-key"></i>
+                        </button>
                     </div>
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <select id="mobile-theme-select-footer" onchange="changeMobileThemeFooter()" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); padding: 3px 6px; font-size: 9px; color: #fff; border-radius: 4px; outline: none; cursor: pointer;">

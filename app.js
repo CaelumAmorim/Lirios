@@ -17,6 +17,7 @@ let db = {
 let adminSession = null;
 let currentAdminTab = 'dashboard';
 let activeObraId = null;
+let editingUserId = null;
 
 // Estado do Aplicativo de Campo (Colaborador)
 let mobileState = {
@@ -35,11 +36,25 @@ function initDatabase() {
     if (localStorage.getItem('lirios_db_initialized')) {
         loadFromStorage();
         
+        // Migração de usuários do banco para usar username em vez de email
+        let migrated = false;
+        db.users.forEach(u => {
+            if (u.email !== undefined) {
+                u.username = u.email.includes('@') ? u.email.split('@')[0] : u.email;
+                delete u.email;
+                migrated = true;
+            }
+        });
+        
         // Garante que a usuária Michele Santos (CEO) exista no banco de dados local
-        const micheleExists = db.users.some(u => u.email === 'michelesantos');
+        const micheleExists = db.users.some(u => u.username === 'michelesantos');
         if (!micheleExists) {
             db.users = db.users.filter(u => u.id !== 'u-ceo'); // remove CEO antigo
-            db.users.push({ id: "u-ceo", nome: "Michele Santos (CEO)", email: "michelesantos", senha: "Michele123", perfil: "CEO", ativo: true });
+            db.users.push({ id: "u-ceo", nome: "Michele Santos (CEO)", username: "michelesantos", senha: "Michele123", perfil: "CEO", ativo: true });
+            migrated = true;
+        }
+        
+        if (migrated) {
             saveToStorage();
         }
         
@@ -62,11 +77,11 @@ function initDatabase() {
 
     // 1.2 Carga inicial de Usuários (CEO, Admins e Colaboradores com senhas)
     db.users = [
-        { id: "u-ceo", nome: "Michele Santos (CEO)", email: "michelesantos", senha: "Michele123", perfil: "CEO", ativo: true },
-        { id: "u-admin", nome: "Ana Paula (Administrador)", email: "admin@lirios.com.br", senha: "123", perfil: "ADMIN", ativo: true },
-        { id: "u-carlos", nome: "Carlos Limpeza", email: "carlos@lirios.com.br", senha: "456", perfil: "COLABORADOR", ativo: true },
-        { id: "u-jose", nome: "José Roberto", email: "jose@lirios.com.br", senha: "456", perfil: "COLABORADOR", ativo: true },
-        { id: "u-andre", nome: "André Lucas", email: "andre@lirios.com.br", senha: "456", perfil: "COLABORADOR", ativo: true }
+        { id: "u-ceo", nome: "Michele Santos (CEO)", username: "michelesantos", senha: "Michele123", perfil: "CEO", ativo: true },
+        { id: "u-admin", nome: "Ana Paula (Administrador)", username: "admin", senha: "123", perfil: "ADMIN", ativo: true },
+        { id: "u-carlos", nome: "Carlos Limpeza", username: "carlos", senha: "456", perfil: "COLABORADOR", ativo: true },
+        { id: "u-jose", nome: "José Roberto", username: "jose", senha: "456", perfil: "COLABORADOR", ativo: true },
+        { id: "u-andre", nome: "André Lucas", username: "andre", senha: "456", perfil: "COLABORADOR", ativo: true }
     ];
 
     // 1.3 Carga inicial de Obras com Torres Dinâmicas
@@ -281,10 +296,10 @@ function handleAdminLogin() {
     const userVal = document.getElementById('admin-username').value.trim().toLowerCase();
     const passVal = document.getElementById('admin-password').value;
 
-    // Procura usuário no banco que tenha perfil CEO ou ADMIN e bata com o e-mail ou nome
+    // Procura usuário no banco que tenha perfil CEO ou ADMIN e bata com o username ou nome
     const user = db.users.find(u => {
         if (u.perfil === 'CEO' || u.perfil === 'ADMIN') {
-            return u.email.split('@')[0] === userVal || u.email === userVal || u.nome.toLowerCase().includes(userVal);
+            return (u.username && u.username.toLowerCase() === userVal) || u.nome.toLowerCase().includes(userVal);
         }
         return false;
     });
@@ -420,8 +435,8 @@ function renderAdminDashboard() {
     }
     
     if (!activeObraId) {
+        document.getElementById('admin-fat-diario').innerText = "R$ 0,00";
         document.getElementById('admin-fat-realizado').innerText = "R$ 0,00";
-
         document.getElementById('admin-fat-previsto').innerText = "R$ 0,00";
         document.getElementById('admin-fat-faltante').innerText = "R$ 0,00";
         document.getElementById('admin-progresso-fisico').innerText = "0 / 0";
@@ -437,11 +452,21 @@ function renderAdminDashboard() {
     // Limpezas concluídas
     const limpezasConcluidasObra = db.limpezas.filter(l => idsUnidades.includes(l.unidade_id) && l.data_conclusao !== null);
 
-    // 1. Faturamento Realizado
+    // 1. Faturamento Diário (Hoje)
+    const hojeStrLocal = new Date().toLocaleDateString('pt-BR');
+    const limpezasHoje = limpezasConcluidasObra.filter(l => {
+        if (!l.data_conclusao) return false;
+        const dataLStr = new Date(l.data_conclusao).toLocaleDateString('pt-BR');
+        return dataLStr === hojeStrLocal;
+    });
+    const fatDiario = limpezasHoje.reduce((acc, curr) => acc + parseFloat(curr.valor_gerado), 0);
+    document.getElementById('admin-fat-diario').innerText = formatCurrency(fatDiario);
+
+    // 2. Faturamento Realizado
     const fatRealizado = limpezasConcluidasObra.reduce((acc, curr) => acc + parseFloat(curr.valor_gerado), 0);
     document.getElementById('admin-fat-realizado').innerText = formatCurrency(fatRealizado);
 
-    // 2. Faturamento Previsto (Com base na lista dinâmica de serviços)
+    // 3. Faturamento Previsto (Com base na lista dinâmica de serviços)
     const precosObra = db.matriz.filter(m => m.obra_id === activeObraId);
     
     // Filtra apenas preços de serviços que ainda estão ATIVOS no db
@@ -452,11 +477,11 @@ function renderAdminDashboard() {
     const fatPrevisto = unidadesObra.length * somaPrecos;
     document.getElementById('admin-fat-previsto').innerText = formatCurrency(fatPrevisto);
 
-    // 3. Faturamento Faltante
+    // 4. Faturamento Faltante
     const fatFaltante = Math.max(0, fatPrevisto - fatRealizado);
     document.getElementById('admin-fat-faltante').innerText = formatCurrency(fatFaltante);
 
-    // 4. Progresso Físico
+    // 5. Progresso Físico
     const totalTarefasPossiveis = unidadesObra.length * db.servicos.length;
     const totalTarefasConcluidas = limpezasConcluidasObra.filter(l => chavesServicosAtivos.includes(l.tipo_limpeza)).length;
     document.getElementById('admin-progresso-fisico').innerText = `${totalTarefasConcluidas} / ${totalTarefasPossiveis}`;
@@ -603,26 +628,39 @@ function renderTeamTab() {
     db.users.forEach(u => {
         const tr = document.createElement('tr');
         
-        let perfilBadge = `<span class="prod-badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary-light); border: 1px solid rgba(99, 102, 241, 0.3);">ADMIN</span>`;
+        let perfilBadge = `<span class="prod-badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary-light); border: 1px solid rgba(99, 102, 241, 0.3); margin-left: 8px;">ADMIN</span>`;
         if (u.perfil === 'CEO') {
-            perfilBadge = `<span class="prod-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3);">CEO</span>`;
+            perfilBadge = `<span class="prod-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); margin-left: 8px;">CEO</span>`;
         } else if (u.perfil === 'COLABORADOR') {
-            perfilBadge = `<span class="prod-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3);">COLABORADOR</span>`;
+            perfilBadge = `<span class="prod-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); margin-left: 8px;">COLAB</span>`;
         }
 
-        // Não permite excluir a própria CEO logada ou a CEO padrão
         const isCeo = u.perfil === 'CEO';
-        const deleteButton = isCeo ? '<span style="color: var(--text-muted); font-size: 11px; font-style: italic;">Vitalício</span>' : `
+        
+        const editButton = `
+            <button class="btn-secondary" onclick="adminEditUser('${u.id}')" style="color: var(--primary-light); border-color: rgba(99, 102, 241, 0.2); background: rgba(99, 102, 241, 0.03); padding: 4px 8px; font-size: 11px; margin-right: 4px;">
+                <i class="fa-solid fa-user-pen"></i> Editar
+            </button>
+        `;
+        
+        const deleteButton = isCeo ? '<span style="color: var(--text-muted); font-size: 11px; font-style: italic; margin-left: 4px;">Vitalício</span>' : `
             <button class="btn-secondary" onclick="adminDeleteUser('${u.id}')" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.03); padding: 4px 8px; font-size: 11px;">
                 <i class="fa-solid fa-user-minus"></i> Excluir
             </button>
         `;
 
+        // Check if CEO is logged in
+        const showPassword = adminSession && adminSession.perfil === 'CEO';
+        const displayPassword = showPassword ? u.senha : '***';
+
         tr.innerHTML = `
-            <td style="font-weight: 600; color: #fff;">${u.nome}</td>
-            <td>${u.email}</td>
-            <td>${perfilBadge}</td>
-            <td>${deleteButton}</td>
+            <td style="font-weight: 600; color: #fff;">${u.nome}${perfilBadge}</td>
+            <td>${u.username}</td>
+            <td style="font-family: monospace; font-size: 13px; letter-spacing: 1px;">${displayPassword}</td>
+            <td>
+                ${editButton}
+                ${deleteButton}
+            </td>
         `;
         tbody.appendChild(tr);
     });
@@ -630,34 +668,93 @@ function renderTeamTab() {
 
 function adminCreateUser() {
     const nome = document.getElementById('usr-nome').value.trim();
-    const email = document.getElementById('usr-email').value.trim().toLowerCase();
+    const username = document.getElementById('usr-username').value.trim().toLowerCase();
     const senha = document.getElementById('usr-senha').value;
     const perfil = document.getElementById('usr-perfil').value;
 
-    // Valida email único
-    if (db.users.some(u => u.email === email)) {
-        alert("Já existe um membro cadastrado com este e-mail!");
+    if (!nome || !username || !senha) {
+        alert("Preencha todos os campos obrigatórios!");
         return;
     }
 
-    const novoUsuario = {
-        id: `u-${Date.now()}`,
-        nome,
-        email,
-        senha,
-        perfil,
-        ativo: true
-    };
+    if (editingUserId) {
+        // Modo Edição
+        if (db.users.some(u => u.username.toLowerCase() === username && u.id !== editingUserId)) {
+            alert("Já existe um membro cadastrado com este usuário de login!");
+            return;
+        }
 
-    db.users.push(novoUsuario);
+        const user = db.users.find(u => u.id === editingUserId);
+        if (user) {
+            user.nome = nome;
+            user.username = username;
+            user.senha = senha;
+            user.perfil = perfil;
+        }
+
+        editingUserId = null;
+        alert("Membro da equipe atualizado com sucesso!");
+    } else {
+        // Modo Cadastro
+        if (db.users.some(u => u.username.toLowerCase() === username)) {
+            alert("Já existe um membro cadastrado com este usuário de login!");
+            return;
+        }
+
+        const novoUsuario = {
+            id: `u-${Date.now()}`,
+            nome,
+            username,
+            senha,
+            perfil,
+            ativo: true
+        };
+
+        db.users.push(novoUsuario);
+        alert(`Membro "${nome}" cadastrado com sucesso!`);
+    }
+
     saveToStorage();
 
-    document.getElementById('form-criar-colaborador').reset();
+    adminCancelEdit();
     renderTeamTab();
     loadMobileWorkers(); // atualiza select do mobile
     renderAllocationGrid(); // sincroniza o grid de alocação à direita
+}
 
-    alert(`Membro "${nome}" cadastrado com sucesso!`);
+function adminEditUser(userId) {
+    const user = db.users.find(u => u.id === userId);
+    if (!user) return;
+
+    editingUserId = userId;
+
+    document.getElementById('usr-nome').value = user.nome;
+    document.getElementById('usr-username').value = user.username;
+    document.getElementById('usr-senha').value = user.senha;
+    document.getElementById('usr-perfil').value = user.perfil;
+
+    document.getElementById('form-colaborador-titulo').innerHTML = `
+        <i class="fa-solid fa-user-pen" style="color: var(--primary-light)"></i>
+        Editar Membro da Equipe
+    `;
+    document.getElementById('btn-salvar-colaborador').innerHTML = `
+        <i class="fa-solid fa-user-check"></i> Salvar Alterações
+    `;
+    document.getElementById('btn-cancelar-edicao').style.display = 'inline-block';
+}
+
+function adminCancelEdit() {
+    editingUserId = null;
+    document.getElementById('form-criar-colaborador').reset();
+
+    document.getElementById('form-colaborador-titulo').innerHTML = `
+        <i class="fa-solid fa-user-plus" style="color: var(--primary-light)"></i>
+        Adicionar Membro da Equipe
+    `;
+    document.getElementById('btn-salvar-colaborador').innerHTML = `
+        <i class="fa-solid fa-user-check"></i> Cadastrar Membro
+    `;
+    document.getElementById('btn-cancelar-edicao').style.display = 'none';
 }
 
 function adminDeleteUser(userId) {
@@ -1050,7 +1147,7 @@ function renderAllocationGrid() {
         div.style = "display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.02); padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color)";
         div.innerHTML = `
             <input type="checkbox" id="alloc-chk-${c.id}" ${alocado ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer;">
-            <label for="alloc-chk-${c.id}" style="font-size: 13px; color: #fff; cursor: pointer;">${c.nome} (${c.email})</label>
+            <label for="alloc-chk-${c.id}" style="font-size: 13px; color: #fff; cursor: pointer;">${c.nome} (${c.username})</label>
         `;
         container.appendChild(div);
     });
@@ -1156,7 +1253,7 @@ function loadMobileWorkers() {
     const select = document.getElementById('mobile-user-select');
     if (!select) return;
     const colaboradores = db.users.filter(u => u.perfil === 'COLABORADOR' && u.ativo);
-    select.innerHTML = colaboradores.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+    select.innerHTML = colaboradores.map(c => `<option value="${c.id}">${c.nome} (${c.username})</option>`).join('');
 }
 
 function mobileLogin() {
@@ -1562,6 +1659,55 @@ function mobileBackToPavimentos() {
 function mobileBackToUnidades() {
     mobileNavigate('unidades');
     renderMobileUnidades();
+}
+
+function mobileOpenChangePassword() {
+    document.getElementById('mobile-senha-atual').value = '';
+    document.getElementById('mobile-senha-nova').value = '';
+    mobileNavigate('senha');
+}
+
+function mobileBackFromSenha() {
+    mobileNavigate('obras');
+    renderMobileObras();
+}
+
+function mobileUpdatePassword() {
+    const currentPass = document.getElementById('mobile-senha-atual').value;
+    const newPass = document.getElementById('mobile-senha-nova').value.trim();
+
+    if (!mobileState.currentUser) {
+        alert("Nenhum usuário ativo logado!");
+        return;
+    }
+
+    const user = db.users.find(u => u.id === mobileState.currentUser.id);
+    if (!user) {
+        alert("Usuário não encontrado!");
+        return;
+    }
+
+    if (user.senha !== currentPass) {
+        alert("Senha atual incorreta!");
+        return;
+    }
+
+    if (newPass.length < 3) {
+        alert("A nova senha deve ter no mínimo 3 caracteres!");
+        return;
+    }
+
+    user.senha = newPass;
+    mobileState.currentUser.senha = newPass;
+    
+    saveToStorage();
+    showToast("Senha alterada com sucesso!");
+
+    document.getElementById('mobile-senha-atual').value = '';
+    document.getElementById('mobile-senha-nova').value = '';
+    
+    mobileNavigate('obras');
+    renderMobileObras();
 }
 
 // ==========================================

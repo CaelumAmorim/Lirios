@@ -1292,6 +1292,17 @@ input:focus, select:focus {
     color: #111827 !important;
 }
 
+.theme-light-elegant #tab-matriz span,
+.theme-light-elegant #tab-matriz label,
+.theme-light-elegant #tab-matriz div,
+.theme-light-elegant .matrix-item span,
+.theme-light-elegant .matrix-item label,
+.theme-light-elegant .matrix-item div,
+.theme-light-elegant .currency-symbol {
+    color: #111827 !important;
+}
+
+
 .theme-light-elegant .glass-card,
 .theme-light-elegant .mobile-card,
 .theme-light-elegant .grid-cell,
