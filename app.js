@@ -591,11 +591,11 @@ function renderProductivityChart() {
         row.style.marginBottom = '20px';
         row.innerHTML = `
             <div class="prod-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 600; color: #fff;"><i class="fa-solid fa-helmet-safety" style="color: var(--primary-light); margin-right: 6px;"></i> ${colab.nome}</span>
+                <span style="font-weight: 600;"><i class="fa-solid fa-helmet-safety" style="color: var(--primary-light); margin-right: 6px;"></i> ${colab.nome}</span>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     ${performanceBadge}
                     <span style="font-size: 11px; color: var(--text-secondary);">${qtdLimpezas} limpezas no mês</span>
-                    <strong style="color: #fff; font-size: 13px;">${mediaDiaria.toFixed(1)} apts/dia</strong>
+                    <strong style="font-size: 13px;">${mediaDiaria.toFixed(1)} apts/dia</strong>
                 </div>
             </div>
             <div class="prod-bar-outer" style="height: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; position: relative;">
@@ -658,7 +658,7 @@ function renderTeamTab() {
         const displayPassword = showPassword ? u.senha : '***';
 
         tr.innerHTML = `
-            <td style="font-weight: 600; color: #fff;">${u.nome}${perfilBadge}</td>
+            <td style="font-weight: 600;">${u.nome}${perfilBadge}</td>
             <td>${u.username}</td>
             <td style="font-family: monospace; font-size: 13px; letter-spacing: 1px;">${displayPassword}</td>
             <td>
@@ -961,7 +961,7 @@ function renderAdminObras() {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td style="font-weight: 600; color: #fff;">${o.nome}</td>
+            <td style="font-weight: 600;">${o.nome}</td>
             <td style="font-size: 11px; line-height: 1.4;">${torresListInfo}</td>
             <td><strong>${totalUni}</strong> registros</td>
             <td>${alocados || '<span style="color: var(--text-muted)">Nenhum</span>'}</td>
@@ -1151,7 +1151,7 @@ function renderAllocationGrid() {
         div.style = "display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.02); padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-color)";
         div.innerHTML = `
             <input type="checkbox" id="alloc-chk-${c.id}" ${alocado ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer;">
-            <label for="alloc-chk-${c.id}" style="font-size: 13px; color: #fff; cursor: pointer;">${c.nome} (${c.username})</label>
+            <label for="alloc-chk-${c.id}" style="font-size: 13px; cursor: pointer;">${c.nome} (${c.username})</label>
         `;
         container.appendChild(div);
     });
@@ -1233,16 +1233,16 @@ function renderAuditReport() {
         tr.innerHTML = `
             <td style="font-size: 11px; line-height: 1.4;">
                 <span style="color: var(--text-secondary); display: block;">Início: ${formatInicio}</span>
-                <span style="color: #fff; display: block;">Fim: ${formatFim}</span>
+                <span style="display: block;">Fim: ${formatFim}</span>
             </td>
             <td><strong>${obra.nome}</strong><br><span style="font-size: 11px; color: var(--text-secondary);">${uni.torre} - ${uni.unidade_nome} (Andar ${uni.pavimento})</span></td>
             <td style="font-weight: 500;">${colab ? colab.nome : 'Desconhecido'}</td>
             <td>
-                <span class="prod-badge" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border-color); text-transform: uppercase;">
+                <span class="prod-badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); text-transform: uppercase;">
                     ${labelServico}
                 </span>
             </td>
-            <td style="font-size: 12px; color: #fff;">${observacaoStr}</td>
+            <td style="font-size: 12px;">${observacaoStr}</td>
             <td style="text-align: right; font-weight: 700; color: ${l.data_conclusao ? 'var(--success)' : 'var(--text-muted)'};">${l.data_conclusao ? formatCurrency(l.valor_gerado) : 'R$ 0,00'}</td>
         `;
         tbody.appendChild(tr);
@@ -2091,7 +2091,7 @@ function openUnitDetailsModal(unidadeId) {
 
             row.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 6px; margin-bottom: 4px;">
-                    <span style="font-weight: 700; font-size: 13px; color: #fff; display: flex; align-items: center; gap: 6px;">
+                    <span style="font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px;">
                         <i class="fa-solid ${srv.icon || 'fa-broom'}" style="color: var(--primary-light);"></i>
                         ${srv.label}
                     </span>
